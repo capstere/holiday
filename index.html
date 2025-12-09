@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SEMESTER</title>
+  <title>Jesper i vinterlandskapet – Deluxe Edition</title>
+
+  <!-- Samma som i din gamla: Pico + Roboto -->
   <link href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+
   <style>
     html, body {
       margin: 0;
@@ -13,148 +16,402 @@
       font-family: 'Roboto', sans-serif;
       background: url('images/himmel.jpg') center top no-repeat fixed;
       background-size: cover;
-      background-color: #8fd3f4;
+      background-color: #050814;
       height: 100%;
       overflow-x: hidden;
+      color: #e6f0ff;
+    }
+
+    /* Mörk filmisk overlay ovanpå bakgrunden */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at top, rgba(180, 210, 255, 0.08), transparent 55%),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.78), rgba(0, 0, 10, 0.96));
+      pointer-events: none;
+      z-index: 0;
     }
 
     main {
+      position: relative;
+      z-index: 3;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
-      min-height: 80vh;
       text-align: center;
-      position: relative;
-      z-index: 2;
+      padding: 4rem 1.5rem 5rem;
     }
 
     h1 {
-      font-size: clamp(1.5rem, 5vw, 3rem);
-      background-color: rgba(255, 255, 255, 0.7);
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 10px;
-      text-shadow: 1px 1px 2px #fff;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      text-indent: 0.25em;
+      margin-bottom: 0.6rem;
+      text-shadow:
+        0 0 18px rgba(150, 190, 255, 0.7),
+        0 0 40px rgba(60, 100, 190, 0.8);
+    }
+
+    .subline {
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #9fb4d6;
+      margin-bottom: 1.7rem;
+    }
+
+    .tagline {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .return-text {
+      font-size: 1rem;
+      color: #d7e6ff;
+      margin-bottom: 0.8rem;
+    }
+
+    .microcopy {
+      font-size: 0.8rem;
+      color: #8f9ab3;
+      max-width: 420px;
+      margin: 0 auto 1.4rem;
+      line-height: 1.5;
     }
 
     .countdown {
-      font-size: clamp(1rem, 3vw, 1.8rem);
-      margin-top: 2rem;
-      background-color: rgba(255, 255, 255, 0.6);
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #c3d5ff;
+      margin-bottom: 2rem;
       white-space: pre-line;
     }
 
-    .footer {
-      font-size: clamp(1.2rem, 4vw, 2rem);
-      margin: 4rem 0 2rem;
-      text-shadow: 1px 1px 2px #fff;
-      z-index: 2;
+    .music-control {
+      margin-top: 0.5rem;
+      z-index: 3;
       position: relative;
     }
 
-    #sun {
-      position: fixed;
-      top: 30px;
-      left: 20px;
-      width: 80px;
-      animation: spin 40s linear infinite;
-      z-index: 100;
+    #playMusic {
+      border-radius: 999px;
+      padding: 0.6rem 1.8rem;
+      background: rgba(15, 26, 52, 0.95);
+      border: 1px solid rgba(164, 193, 240, 0.9);
+      color: #edf3ff;
+      font-size: 0.95rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow:
+        0 0 0 1px rgba(89, 122, 183, 0.4),
+        0 14px 30px rgba(0, 0, 0, 0.85);
+      transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
     }
 
-    @keyframes spin {
+    #playMusic:hover:not(:disabled) {
+      background: rgba(30, 49, 84, 0.98);
+      box-shadow:
+        0 0 0 1px rgba(189, 215, 255, 0.25),
+        0 20px 40px rgba(0, 0, 0, 0.9);
+      transform: translateY(-1px);
+    }
+
+    #playMusic:active:not(:disabled) {
+      transform: translateY(1px) scale(0.99);
+      box-shadow:
+        0 0 0 1px rgba(145, 174, 221, 0.6),
+        0 10px 20px rgba(0, 0, 0, 0.95);
+    }
+
+    #playMusic:disabled {
+      opacity: 0.7;
+      cursor: default;
+    }
+
+    .audio-hint {
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      color: #8e98ae;
+    }
+
+    /* Vintersol / måne (din gamla sol.gif) */
+    #sun {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.3rem;
+      width: 80px;
+      z-index: 1;
+      opacity: 0.6;
+      filter: grayscale(0.5) hue-rotate(210deg) brightness(0.9);
+      animation: spin-slow 40s linear infinite;
+    }
+
+    @keyframes spin-slow {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
 
+    /* “Marken” – din gamla waves.gif, nu som snövall */
     .waves {
       position: fixed;
-      bottom: 0;
+      bottom: -8px;
       left: 0;
       width: 100%;
       height: auto;
       z-index: 1;
+      opacity: 0.5;
+      filter: grayscale(1) brightness(0.95) hue-rotate(210deg);
     }
 
+    /* Jesper som går i motvind */
     .walking-you {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       width: 120px;
-      animation: walk-loop 15s linear infinite;
-      z-index: 10;
+      z-index: 2;
+      animation: walk-loop 18s linear infinite;
+      image-rendering: auto;
+      filter:
+        drop-shadow(0 8px 14px rgba(0, 0, 0, 0.9))
+        drop-shadow(-10px 0 16px rgba(8, 18, 40, 0.9));
     }
 
     @keyframes walk-loop {
-      0% { left: -150px; }
-      100% { left: 100vw; }
+      0% {
+        left: -150px;
+        transform: translateY(0) skewX(-3deg);
+      }
+      30% {
+        left: 20vw;
+        transform: translateY(-4px) skewX(-5deg);
+      }
+      60% {
+        left: 60vw;
+        transform: translateY(2px) skewX(-2deg);
+      }
+      100% {
+        left: 100vw;
+        transform: translateY(0) skewX(-3deg);
+      }
     }
 
-    .music-control {
-      margin-top: 2rem;
+    /* Snö-lager */
+    .snow-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
       z-index: 2;
-      position: relative;
     }
+
+    .snowflake {
+      position: absolute;
+      top: -10vh;
+      color: #f5fbff;
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+      opacity: 0.8;
+      animation-name: snow-fall;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      will-change: transform;
+    }
+
+    @keyframes snow-fall {
+      0% {
+        transform: translate3d(0, -110vh, 0);
+      }
+      25% {
+        transform: translate3d(4vw, -30vh, 0);
+      }
+      50% {
+        transform: translate3d(-3vw, 20vh, 0);
+      }
+      75% {
+        transform: translate3d(5vw, 60vh, 0);
+      }
+      100% {
+        transform: translate3d(0, 112vh, 0);
+      }
+    }
+
+    /* Responsivt */
+    @media (max-width: 600px) {
+      main {
+        padding: 3rem 1.2rem 5rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      .walking-you {
+        bottom: 18px;
+        width: 110px;
+      }
+
+      #sun {
+        width: 64px;
+      }
+    }
+
   </style>
 </head>
 <body>
 
-  <img id="sun" src="images/sol.gif" alt="Snurrande sol" />
+  <!-- Snö-lagret -->
+  <div id="snowLayer" class="snow-layer" aria-hidden="true"></div>
+
+  <!-- Blekt vintersol / måne -->
+  <img id="sun" src="images/sol.gif" alt="Blekt vintersol" />
 
   <main>
-    <h1>Tillbaka Måndag 14/7</h1>
-    <div class="countdown" id="countdown">Snart tillbaka.</div>
+    <h1>Jesper i vinterlandskapet</h1>
+    <div class="subline">– Deluxe Edition –</div>
+
+    <p class="tagline">Jesper kämpar vidare…</p>
+    <p class="return-text">Tillbaka 7 januari 2026 vid gryningen ☕</p>
+
+    <p class="microcopy">
+      En nordisk julfilmstrailer om överlevnad, kaffe och viljan att någon gång
+      återvända till kontoret.
+    </p>
+
+    <div id="countdown" class="countdown">
+      Räknar ner till återkomsten…
+    </div>
 
     <div class="music-control">
-      <button id="playMusic">▶Play</button>
+      <button id="playMusic">▶️ Spela julsång</button>
+      <p id="audioHint" class="audio-hint">
+        Stormljudet startar automatiskt om webbläsaren tillåter det.
+      </p>
     </div>
   </main>
 
-  <img class="walking-you" src="images/semester-jag.gif" alt="Semester-Jag" />
-  <img class="waves" src="images/waves.gif" alt="Vågor" />
+  <!-- Jesper + “snövall” längst ner -->
+  <img class="walking-you" src="images/semester-jag.gif" alt="Jesper som kämpar i snöstorm" />
+  <img class="waves" src="images/waves.gif" alt="Snötäckt mark" />
+
+  <!-- Ljud: storm + julsång -->
+  <audio id="stormAudio" loop>
+    <source src="audio/storm.mp3" type="audio/mpeg" />
+  </audio>
 
   <audio id="bgMusic" loop>
     <source src="audio/semester.mp3" type="audio/mpeg" />
-    Din webbläsare stödjer inte ljud.
   </audio>
 
-  <footer class="footer">
-    Trevlig sommar!
-  </footer>
-
   <script>
+    // COUNTDOWN TILL 7 JANUARI 2026 (typ gryningen)
     const cd = document.getElementById("countdown");
-    const target = new Date("2025-07-14T15:00:00");
+    const target = new Date("2026-01-07T08:00:00");
 
     function tick() {
       const now = new Date();
       const diff = target - now;
+
       if (diff <= 0) {
-        cd.textContent = "Return of the JESP";
+        cd.textContent = "Jesper har återvänt. Kaffet är starkare än någonsin.";
         return;
       }
-      const d = Math.floor(diff / 86400000),
-            h = Math.floor(diff % 86400000 / 3600000),
-            m = Math.floor(diff % 3600000 / 60000),
-            s = Math.floor(diff % 60000 / 1000);
-      cd.textContent = `${d} dagar ${h} tim ${m} min ${s} sek \ntills jag sitter i mitt hörn igen / JESP`;
+
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor(diff % 86400000 / 3600000);
+      const m = Math.floor(diff % 3600000 / 60000);
+      const s = Math.floor(diff % 60000 / 1000);
+
+      cd.textContent =
+        `${d} dagar ${h} tim ${m} min ${s} sek` +
+        `\n` +
+        `tills Jesper stapplar tillbaka in på kontoret.`;
     }
 
     setInterval(tick, 1000);
     tick();
 
+    // LJUD: STORM + JULSÅNG
+    const storm = document.getElementById("stormAudio");
     const music = document.getElementById("bgMusic");
     const playBtn = document.getElementById("playMusic");
+    const audioHint = document.getElementById("audioHint");
 
-    playBtn.addEventListener("click", () => {
-      music.volume = 0.2;
-      music.play();
-      playBtn.disabled = true;
-      playBtn.textContent = "🎵 Spelar...";
-    });
+    if (storm) {
+      storm.volume = 0.5;
+      storm.play().catch(() => {
+        if (audioHint) {
+          audioHint.textContent =
+            "Webbläsaren blockar autoplay – tryck på knappen för att starta ljudet.";
+        }
+      });
+    }
+
+    if (music) {
+      music.volume = 0.8;
+    }
+
+    if (playBtn) {
+      playBtn.addEventListener("click", () => {
+        // Hjälp stormljudet att starta om det är pausat
+        if (storm && storm.paused) {
+          storm.play().catch(() => {});
+        }
+
+        if (!music) return;
+
+        if (music.paused) {
+          music.play().then(() => {
+            playBtn.textContent = "⏸ Pausa julsång";
+            if (audioHint) {
+              audioHint.textContent =
+                "Julsången spelas. Stormen fortsätter. Kaffet väntar.";
+            }
+          }).catch(() => {
+            if (audioHint) {
+              audioHint.textContent =
+                "Webbläsaren vill inte spela upp musiken – prova igen eller kolla ljudinställningar.";
+            }
+          });
+        } else {
+          music.pause();
+          playBtn.textContent = "▶️ Spela julsång";
+          if (audioHint) {
+            audioHint.textContent = "Julsången är pausad. Snön jobbar övertid.";
+          }
+        }
+      });
+    }
+
+    // SNÖEFFEKTER (enkel, liknar en trailer-overlay)
+    const snowLayer = document.getElementById("snowLayer");
+    if (snowLayer) {
+      const maxFlakes = window.innerWidth < 600 ? 60 : 120;
+
+      for (let i = 0; i < maxFlakes; i++) {
+        const flake = document.createElement("span");
+        flake.classList.add("snowflake");
+
+        flake.textContent = Math.random() < 0.2 ? "❄" : "•";
+
+        const sizeRem = Math.random() * 0.7 + 0.4; // 0.4–1.1 rem
+        const left = Math.random() * 100;          // vw
+        const duration = Math.random() * 15 + 10;  // 10–25 s
+        const delay = Math.random() * -20;         // negativt = start utspritt
+        const opacity = (Math.random() * 0.5 + 0.3).toFixed(2);
+
+        flake.style.fontSize = sizeRem + "rem";
+        flake.style.left = left + "vw";
+        flake.style.animationDuration = duration + "s";
+        flake.style.animationDelay = delay + "s";
+        flake.style.opacity = opacity;
+
+        snowLayer.appendChild(flake);
+      }
+    }
   </script>
 
 </body>
