@@ -24,6 +24,16 @@ interface WallSegment {
   confidence: string;
 }
 
+interface WallOpening {
+  id: string;
+  start_m: Vec2;
+  end_m: Vec2;
+  center_m: Vec2;
+  width_m: number;
+  door_portal_ids: string[];
+  confidence: string;
+}
+
 interface DoorPortal {
   id: string;
   line_m: [Vec2, Vec2];
@@ -60,6 +70,7 @@ interface Z4GeometryExport {
   };
   walkable_areas: WalkableArea[];
   wall_segments: WallSegment[];
+  wall_openings?: WallOpening[];
   door_portals: DoorPortal[];
   props: PropBox[];
   build_notes: string[];
@@ -78,13 +89,15 @@ app.innerHTML = `
       <button id="start" type="button">Enter first person</button>
       <button id="reset" type="button">Reset spawn</button>
       <button id="toggle-minimap" type="button">Toggle minimap</button>
+      <button id="toggle-openings" type="button">Toggle openings</button>
       <a href="/">Review UI</a>
     </div>
     <div class="runtime-info">
       <span>Room: <strong id="room-name">—</strong></span>
       <span>Position: <strong id="position-readout">—</strong></span>
+      <span>Openings: <strong id="openings-readout">—</strong></span>
     </div>
-    <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · Esc = release mouse. Geometry is v0 candidate data, not final CAD.</p>
+    <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · O = openings · Esc = release mouse. Geometry is v0/v1 candidate data, not final CAD.</p>
   </section>
   <section id="viewport"></section>
   <aside id="minimap-panel" class="minimap-panel">
@@ -101,12 +114,14 @@ const status = document.querySelector<HTMLSpanElement>('#status');
 const startButton = document.querySelector<HTMLButtonElement>('#start');
 const resetButton = document.querySelector<HTMLButtonElement>('#reset');
 const toggleMinimapButton = document.querySelector<HTMLButtonElement>('#toggle-minimap');
+const toggleOpeningsButton = document.querySelector<HTMLButtonElement>('#toggle-openings');
 const roomName = document.querySelector<HTMLElement>('#room-name');
 const positionReadout = document.querySelector<HTMLElement>('#position-readout');
+const openingsReadout = document.querySelector<HTMLElement>('#openings-readout');
 const minimapPanel = document.querySelector<HTMLElement>('#minimap-panel');
 const minimapCanvas = document.querySelector<HTMLCanvasElement>('#minimap');
 
-if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !roomName || !positionReadout || !minimapPanel || !minimapCanvas) {
+if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !toggleOpeningsButton || !roomName || !positionReadout || !openingsReadout || !minimapPanel || !minimapCanvas) {
   throw new Error('Missing viewer controls');
 }
 
@@ -206,13 +221,32 @@ function createDoorMarker(portal: DoorPortal): THREE.Group {
   const center = portal.center_m;
   const length = Math.max(0.25, Math.hypot(b[0] - a[0], b[1] - a[1]));
   const geometry = new THREE.BoxGeometry(length, 2.05, 0.05);
-  const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.35 });
+  const material = new THREE.MeshBasicMaterial({ color: 0xfff69a, transparent: true, opacity: 0.35 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(center[0], 1.05, center[1]);
   mesh.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
   group.add(mesh);
   const label = makeTextSprite(portal.emergency_exit ? 'EXIT' : 'DOOR');
   label.position.set(center[0], 2.35, center[1]);
+  group.add(label);
+  return group;
+}
+
+function createOpeningMarker(opening: WallOpening): THREE.Group {
+  const group = new THREE.Group();
+  const [a, b] = [opening.start_m, opening.end_m];
+  const length = Math.max(0.12, Math.hypot(b[0] - a[0], b[1] - a[1]));
+  const geometry = new THREE.BoxGeometry(length, 0.12, 0.38);
+  const material = new THREE.MeshBasicMaterial({ color: 0xff4fd8, transparent: true, opacity: 0.72 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(opening.center_m[0], 0.08, opening.center_m[1]);
+  mesh.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+  mesh.name = opening.id;
+  group.name = `GROUP-${opening.id}`;
+  group.add(mesh);
+  const label = makeTextSprite('OPENING');
+  label.position.set(opening.center_m[0], 0.8, opening.center_m[1]);
+  label.scale.set(2.1, 0.52, 1);
   group.add(label);
   return group;
 }
@@ -245,6 +279,7 @@ function fitCameraToGeometry(camera: THREE.PerspectiveCamera, data: Z4GeometryEx
 class Minimap {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly bounds: { minX: number; maxX: number; minY: number; maxY: number; pad: number };
+  showOpenings = true;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly data: Z4GeometryExport) {
     const ctx = canvas.getContext('2d');
@@ -305,6 +340,20 @@ class Minimap {
       ctx.stroke();
     }
 
+    if (this.showOpenings) {
+      ctx.strokeStyle = 'rgba(255, 79, 216, 0.98)';
+      ctx.lineWidth = 5;
+      ctx.setLineDash([6, 4]);
+      for (const opening of this.data.wall_openings ?? []) {
+        const [a, b] = [this.map(opening.start_m), this.map(opening.end_m)];
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
     ctx.fillStyle = 'rgba(255, 155, 95, 0.68)';
     for (const prop of this.data.props) {
       const [x1, y1] = this.map([prop.bbox_m[0], prop.bbox_m[1]]);
@@ -332,6 +381,7 @@ class FirstPersonController {
   private yaw = 0;
   private pitch = 0;
   private velocity = new THREE.Vector3();
+  showOpeningsCallback?: () => void;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -347,6 +397,7 @@ class FirstPersonController {
       this.keys.add(event.code);
       if (event.code === 'KeyR') this.reset();
       if (event.code === 'KeyM') minimapPanel.classList.toggle('hidden');
+      if (event.code === 'KeyO') this.showOpeningsCallback?.();
     });
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
     document.addEventListener('pointerlockchange', () => {
@@ -389,17 +440,21 @@ class FirstPersonController {
     const hitsProp = this.data.props.some((prop) => prop.collider && bboxContains(next, prop.bbox_m, radius));
     if (hitsProp) return false;
 
+    const hasSplitOpenings = (this.data.wall_openings?.length ?? 0) > 0;
     for (const wall of this.data.wall_segments) {
       const nearWall = distancePointToSegment(next, wall.start_m, wall.end_m) < radius + wall.thickness_m;
       if (!nearWall) continue;
 
-      const nearDoor = (wall.door_portal_ids_near_edge ?? []).some((portalId) => {
-        const portal = this.data.door_portals.find((candidate) => candidate.id === portalId);
-        if (!portal) return false;
-        return distancePointToSegment(next, portal.line_m[0], portal.line_m[1]) < Math.max(portal.width_m * 0.75, 0.75);
-      });
+      if (!hasSplitOpenings) {
+        const nearDoor = (wall.door_portal_ids_near_edge ?? []).some((portalId) => {
+          const portal = this.data.door_portals.find((candidate) => candidate.id === portalId);
+          if (!portal) return false;
+          return distancePointToSegment(next, portal.line_m[0], portal.line_m[1]) < Math.max(portal.width_m * 0.75, 0.75);
+        });
+        if (nearDoor) continue;
+      }
 
-      if (!nearDoor) return false;
+      return false;
     }
 
     return true;
@@ -472,17 +527,30 @@ function buildScene(data: Z4GeometryExport): void {
   data.door_portals.forEach((portal) => scene.add(createDoorMarker(portal)));
   data.props.forEach((prop) => scene.add(createProp(prop)));
 
-  const spawn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), new THREE.MeshBasicMaterial());
+  const openingDebugGroup = new THREE.Group();
+  openingDebugGroup.name = 'wall-openings-debug';
+  (data.wall_openings ?? []).forEach((opening) => openingDebugGroup.add(createOpeningMarker(opening)));
+  scene.add(openingDebugGroup);
+
+  const spawn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), new THREE.MeshBasicMaterial({ color: 0xffffff }));
   spawn.position.set(data.player_spawn.position_m[0], 0.03, data.player_spawn.position_m[1]);
   scene.add(spawn);
 
   const controller = new FirstPersonController(camera, renderer.domElement, data);
   const minimap = new Minimap(minimapCanvas, data);
 
+  const toggleOpenings = () => {
+    openingDebugGroup.visible = !openingDebugGroup.visible;
+    minimap.showOpenings = openingDebugGroup.visible;
+    openingsReadout.textContent = `${data.wall_openings?.length ?? 0} ${openingDebugGroup.visible ? 'shown' : 'hidden'}`;
+  };
+  controller.showOpeningsCallback = toggleOpenings;
+
   startButton.addEventListener('click', () => controller.requestPointerLock());
   renderer.domElement.addEventListener('click', () => controller.requestPointerLock());
   resetButton.addEventListener('click', () => controller.reset());
   toggleMinimapButton.addEventListener('click', () => minimapPanel.classList.toggle('hidden'));
+  toggleOpeningsButton.addEventListener('click', toggleOpenings);
 
   const clock = new THREE.Clock();
   const resize = () => {
@@ -492,7 +560,8 @@ function buildScene(data: Z4GeometryExport): void {
   };
   window.addEventListener('resize', resize);
 
-  status.textContent = `loaded ${data.walkable_areas.length} rooms, ${data.wall_segments.length} walls, ${data.door_portals.length} portals, ${data.props.length} props`;
+  status.textContent = `loaded ${data.walkable_areas.length} rooms, ${data.wall_segments.length} walls, ${data.wall_openings?.length ?? 0} openings, ${data.door_portals.length} portals, ${data.props.length} props`;
+  openingsReadout.textContent = `${data.wall_openings?.length ?? 0} shown`;
 
   const animate = () => {
     requestAnimationFrame(animate);
