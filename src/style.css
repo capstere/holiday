@@ -133,6 +133,39 @@ th {
   background: #15171b;
 }
 
+.review-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  padding: 12px;
+  margin: 14px 0;
+  border: 1px solid #2b2d31;
+  border-radius: 14px;
+  background: #101217;
+}
+
+.review-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #dce0e8;
+  font-size: 0.9rem;
+}
+
+.review-controls select {
+  background: #17191d;
+  color: #f5f5f5;
+  border: 1px solid #3a3f4b;
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+
+.control-status {
+  color: #aab1c0;
+  font-size: 0.85rem;
+}
+
 .plan-canvas {
   position: relative;
   min-height: 520px;
@@ -144,6 +177,26 @@ th {
     linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
     #0f1115;
   background-size: 5% 5%;
+}
+
+.floorplan-bg {
+  position: absolute;
+  object-fit: fill;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.plan-canvas.has-background .floorplan-bg {
+  opacity: 0.76;
+}
+
+.hide-floorplan-bg .floorplan-bg {
+  opacity: 0 !important;
+}
+
+.plan-canvas.has-background .missing-background {
+  display: none;
 }
 
 .full-plan {
@@ -170,6 +223,7 @@ th {
 
 .zone-box {
   position: absolute;
+  z-index: 2;
   border: 2px solid rgba(120, 180, 255, 0.88);
   background: rgba(120, 180, 255, 0.08);
 }
@@ -198,6 +252,20 @@ th {
   z-index: 2;
 }
 
+.candidate {
+  cursor: copy;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+.candidate:hover {
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
+}
+
+.candidate-hidden {
+  opacity: 0.08 !important;
+  pointer-events: none;
+}
+
 .room-poly {
   fill: rgba(60, 160, 255, 0.20);
   stroke-width: 0.8;
@@ -219,6 +287,7 @@ th {
   place-items: center;
   overflow: hidden;
   opacity: 0.9;
+  padding: 0;
 }
 
 .equipment-box span {
@@ -253,6 +322,7 @@ th {
 .legend-room { background: rgba(60, 160, 255, 0.45); }
 .legend-door { background: rgba(255, 235, 120, 0.9); }
 .legend-equipment { background: rgba(255, 150, 90, 0.72); }
+.legend-hint { color: #aab1c0; }
 
 .graph-panel {
   border: 1px solid #2b2d31;
