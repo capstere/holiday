@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/plan-model.schema.json",
+  "title": "Plan 5F extraction model",
+  "type": "object",
+  "required": ["schema_version", "source", "zones", "rooms", "doors", "emergency_exits", "equipment", "labels", "unresolved_questions"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["filename", "page_count", "scale_note"],
+      "properties": {
+        "filename": {"type": "string"},
+        "page_count": {"type": "number"},
+        "scale_note": {"type": "string"}
+      }
+    },
+    "extraction_policy": {"type": "array", "items": {"type": "string"}},
+    "zones": {"type": "array", "items": {"$ref": "#/$defs/zone"}},
+    "rooms": {"type": "array", "items": {"$ref": "#/$defs/room"}},
+    "doors": {"type": "array", "items": {"$ref": "#/$defs/door"}},
+    "emergency_exits": {"type": "array", "items": {"$ref": "#/$defs/door"}},
+    "equipment": {"type": "array", "items": {"$ref": "#/$defs/equipment"}},
+    "labels": {"type": "array", "items": {"$ref": "#/$defs/label"}},
+    "unresolved_questions": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "confidence": {"enum": ["high", "medium", "low", "unknown"]},
+    "zone": {
+      "type": "object",
+      "required": ["id", "name", "description"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "normalized_bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}
+      }
+    },
+    "room": {
+      "type": "object",
+      "required": ["id", "name", "category", "zone", "readable_labels", "confidence"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "room_number": {"type": "string"},
+        "category": {"enum": ["lab", "office", "corridor", "storage", "airlock", "technical", "unknown"]},
+        "zone": {"type": "string"},
+        "readable_labels": {"type": "array", "items": {"type": "string"}},
+        "needs_verification": {"type": "boolean"},
+        "confidence": {"$ref": "#/$defs/confidence"}
+      }
+    },
+    "door": {
+      "type": "object",
+      "required": ["id", "type", "zone", "swing_visible", "emergency_exit", "confidence"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"enum": ["hinged", "double", "sliding_or_unknown", "emergency_exit", "opening"]},
+        "zone": {"type": "string"},
+        "between": {"type": "array", "items": {"type": "string"}},
+        "label": {"type": "string"},
+        "swing_visible": {"type": "boolean"},
+        "emergency_exit": {"type": "boolean"},
+        "confidence": {"$ref": "#/$defs/confidence"}
+      }
+    },
+    "equipment": {
+      "type": "object",
+      "required": ["id", "type", "label", "zone", "confidence"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"type": "string"},
+        "label": {"type": "string"},
+        "zone": {"type": "string"},
+        "room_id": {"type": "string"},
+        "should_block_player": {"type": "boolean"},
+        "confidence": {"$ref": "#/$defs/confidence"}
+      }
+    },
+    "label": {
+      "type": "object",
+      "required": ["id", "text", "category", "confidence"],
+      "properties": {
+        "id": {"type": "string"},
+        "text": {"type": "string"},
+        "zone": {"type": "string"},
+        "room_id": {"type": "string"},
+        "category": {"enum": ["room_name", "room_number", "equipment_label", "safety_label", "note", "unknown"]},
+        "confidence": {"$ref": "#/$defs/confidence"}
+      }
+    }
+  }
+}
