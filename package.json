@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "validate:plan": "node scripts/validate-plan.mjs public/data/plan5f.manual-v0.json",
-    "apply:annotation-patch": "node scripts/apply-annotation-patch.mjs public/data/plan5f.manual-v0.json"
+    "apply:annotation-patch": "node scripts/apply-annotation-patch.mjs public/data/plan5f.manual-v0.json",
+    "export:z4-geometry": "node scripts/export-z4-geometry.mjs public/data/plan5f.manual-v0.json public/generated/z4.geometry-v0.json"
   },
   "dependencies": {
     "@vitejs/plugin-basic-ssl": "latest",
