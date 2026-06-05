@@ -75,21 +75,39 @@ app.innerHTML = `
       <span id="status">loading geometry...</span>
     </div>
     <div class="controls">
-      <button id="start">Click to enter first person</button>
+      <button id="start" type="button">Enter first person</button>
+      <button id="reset" type="button">Reset spawn</button>
+      <button id="toggle-minimap" type="button">Toggle minimap</button>
       <a href="/">Review UI</a>
     </div>
-    <p>WASD = move · mouse = look · Shift = faster · Esc = release mouse. Geometry is v0 candidate data, not final CAD.</p>
+    <div class="runtime-info">
+      <span>Room: <strong id="room-name">—</strong></span>
+      <span>Position: <strong id="position-readout">—</strong></span>
+    </div>
+    <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · Esc = release mouse. Geometry is v0 candidate data, not final CAD.</p>
   </section>
   <section id="viewport"></section>
+  <aside id="minimap-panel" class="minimap-panel">
+    <header>
+      <strong>Z4 minimap</strong>
+      <span>top-down debug</span>
+    </header>
+    <canvas id="minimap" width="360" height="260"></canvas>
+  </aside>
 `;
 
 const viewport = document.querySelector<HTMLDivElement>('#viewport');
 const status = document.querySelector<HTMLSpanElement>('#status');
 const startButton = document.querySelector<HTMLButtonElement>('#start');
-if (!viewport || !status || !startButton) throw new Error('Missing viewer controls');
+const resetButton = document.querySelector<HTMLButtonElement>('#reset');
+const toggleMinimapButton = document.querySelector<HTMLButtonElement>('#toggle-minimap');
+const roomName = document.querySelector<HTMLElement>('#room-name');
+const positionReadout = document.querySelector<HTMLElement>('#position-readout');
+const minimapPanel = document.querySelector<HTMLElement>('#minimap-panel');
+const minimapCanvas = document.querySelector<HTMLCanvasElement>('#minimap');
 
-function xz([x, y]: Vec2): THREE.Vector3 {
-  return new THREE.Vector3(x, 0, y);
+if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !roomName || !positionReadout || !minimapPanel || !minimapCanvas) {
+  throw new Error('Missing viewer controls');
 }
 
 function distancePointToSegment(point: Vec2, a: Vec2, b: Vec2): number {
@@ -127,6 +145,10 @@ function bboxContains(point: Vec2, bbox: Bbox, padding = 0): boolean {
   return x >= x1 - padding && x <= x2 + padding && y >= y1 - padding && y <= y2 + padding;
 }
 
+function currentRoom(point: Vec2, data: Z4GeometryExport): WalkableArea | undefined {
+  return data.walkable_areas.find((area) => pointInPolygon(point, area.polygon_m));
+}
+
 function makeTextSprite(text: string): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
@@ -153,7 +175,7 @@ function createFloor(area: WalkableArea): THREE.Mesh {
   });
   shape.closePath();
   const geometry = new THREE.ShapeGeometry(shape);
-  geometry.rotateX(-Math.PI / 2);
+  geometry.rotateX(Math.PI / 2);
   const material = new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0.0 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = area.id;
@@ -220,6 +242,91 @@ function fitCameraToGeometry(camera: THREE.PerspectiveCamera, data: Z4GeometryEx
   camera.lookAt((minX + maxX) / 2, 0, (minY + maxY) / 2);
 }
 
+class Minimap {
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly bounds: { minX: number; maxX: number; minY: number; maxY: number; pad: number };
+
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly data: Z4GeometryExport) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Minimap canvas unavailable');
+    this.ctx = ctx;
+    const points = data.walkable_areas.flatMap((area) => area.polygon_m);
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    this.bounds = {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+      pad: 1.5,
+    };
+  }
+
+  private map([x, y]: Vec2): Vec2 {
+    const { minX, maxX, minY, maxY, pad } = this.bounds;
+    const usableW = this.canvas.width - 24;
+    const usableH = this.canvas.height - 24;
+    const sx = usableW / (maxX - minX + pad * 2);
+    const sy = usableH / (maxY - minY + pad * 2);
+    const scale = Math.min(sx, sy);
+    const offsetX = (this.canvas.width - (maxX - minX + pad * 2) * scale) / 2;
+    const offsetY = (this.canvas.height - (maxY - minY + pad * 2) * scale) / 2;
+    return [offsetX + (x - minX + pad) * scale, offsetY + (y - minY + pad) * scale];
+  }
+
+  draw(player: Vec2, yaw: number, room?: WalkableArea): void {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillStyle = 'rgba(11, 13, 18, 0.92)';
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (const area of this.data.walkable_areas) {
+      ctx.beginPath();
+      area.polygon_m.forEach((point, index) => {
+        const [x, y] = this.map(point);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = area.id === room?.id ? 'rgba(125, 215, 255, 0.28)' : 'rgba(120, 180, 255, 0.14)';
+      ctx.strokeStyle = 'rgba(205, 225, 255, 0.65)';
+      ctx.lineWidth = 1.5;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(255, 246, 150, 0.95)';
+    ctx.lineWidth = 3;
+    for (const portal of this.data.door_portals) {
+      const [a, b] = portal.line_m.map((point) => this.map(point));
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(255, 155, 95, 0.68)';
+    for (const prop of this.data.props) {
+      const [x1, y1] = this.map([prop.bbox_m[0], prop.bbox_m[1]]);
+      const [x2, y2] = this.map([prop.bbox_m[2], prop.bbox_m[3]]);
+      ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+    }
+
+    const [px, py] = this.map(player);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-yaw);
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(0, -9);
+    ctx.lineTo(6, 7);
+    ctx.lineTo(-6, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 class FirstPersonController {
   private readonly keys = new Set<string>();
   private yaw = 0;
@@ -231,14 +338,16 @@ class FirstPersonController {
     private readonly dom: HTMLElement,
     private readonly data: Z4GeometryExport,
   ) {
-    this.yaw = THREE.MathUtils.degToRad(data.player_spawn.yaw_degrees ?? 0);
-    const [x, z] = data.player_spawn.position_m;
-    this.camera.position.set(x, data.player_spawn.eye_height_m, z);
+    this.reset();
     this.bind();
   }
 
   private bind(): void {
-    window.addEventListener('keydown', (event) => this.keys.add(event.code));
+    window.addEventListener('keydown', (event) => {
+      this.keys.add(event.code);
+      if (event.code === 'KeyR') this.reset();
+      if (event.code === 'KeyM') minimapPanel.classList.toggle('hidden');
+    });
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
     document.addEventListener('pointerlockchange', () => {
       status.textContent = document.pointerLockElement === this.dom ? 'first-person active' : 'paused / pointer unlocked';
@@ -252,8 +361,24 @@ class FirstPersonController {
     });
   }
 
+  reset(): void {
+    this.yaw = THREE.MathUtils.degToRad(this.data.player_spawn.yaw_degrees ?? 0);
+    this.pitch = 0;
+    const [x, z] = this.data.player_spawn.position_m;
+    this.camera.position.set(x, this.data.player_spawn.eye_height_m, z);
+    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+  }
+
   requestPointerLock(): void {
     this.dom.requestPointerLock();
+  }
+
+  position2d(): Vec2 {
+    return [this.camera.position.x, this.camera.position.z];
+  }
+
+  yawRadians(): number {
+    return this.yaw;
   }
 
   private canStandAt(next: Vec2): boolean {
@@ -304,13 +429,8 @@ class FirstPersonController {
 }
 
 async function loadGeometry(): Promise<Z4GeometryExport> {
-  let response = await fetch('/generated/z4.geometry-v0.json');
-  if (!response.ok) {
-    status.textContent = 'geometry export missing — using live generated fallback from source data';
-    response = await fetch('/data/plan5f.manual-v0.json');
-    if (!response.ok) throw new Error('Missing both generated geometry and source plan data. Run npm run export:z4-geometry.');
-    throw new Error('Missing /generated/z4.geometry-v0.json. Run npm run export:z4-geometry first.');
-  }
+  const response = await fetch('/generated/z4.geometry-v0.json');
+  if (!response.ok) throw new Error('Missing /generated/z4.geometry-v0.json. Run npm run export:z4-geometry first.');
   return response.json();
 }
 
@@ -357,8 +477,12 @@ function buildScene(data: Z4GeometryExport): void {
   scene.add(spawn);
 
   const controller = new FirstPersonController(camera, renderer.domElement, data);
+  const minimap = new Minimap(minimapCanvas, data);
+
   startButton.addEventListener('click', () => controller.requestPointerLock());
   renderer.domElement.addEventListener('click', () => controller.requestPointerLock());
+  resetButton.addEventListener('click', () => controller.reset());
+  toggleMinimapButton.addEventListener('click', () => minimapPanel.classList.toggle('hidden'));
 
   const clock = new THREE.Clock();
   const resize = () => {
@@ -373,6 +497,11 @@ function buildScene(data: Z4GeometryExport): void {
   const animate = () => {
     requestAnimationFrame(animate);
     controller.update(Math.min(clock.getDelta(), 0.05));
+    const position = controller.position2d();
+    const room = currentRoom(position, data);
+    roomName.textContent = room?.label ?? 'outside walkable area';
+    positionReadout.textContent = `${position[0].toFixed(2)} m, ${position[1].toFixed(2)} m`;
+    minimap.draw(position, controller.yawRadians(), room);
     renderer.render(scene, camera);
   };
   animate();
