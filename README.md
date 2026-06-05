@@ -11,34 +11,61 @@ Kärnidén:
 
 > Viktigt: PDF/ritningsbild ska inte commitas om repot är publikt. Lägg den lokalt i `public/source/` vid behov.
 
-## Snabbstart
+## Enklast: starta spelet
+
+Första gången:
 
 ```bash
+git clone https://github.com/capstere/holiday.git
+cd holiday
 npm install
-npm run validate:plan
-npm run dev
+npm run play
 ```
 
-Review UI:
-
-```text
-http://localhost:5173/
-```
-
-Z4 first-person prototype:
+Nästa gång:
 
 ```bash
-npm run export:z4-geometry
-npm run dev
+cd holiday
+git pull
+npm install
+npm run play
 ```
 
-Öppna sedan:
+`npm run play` gör två saker automatiskt:
+
+1. genererar Z4-geometry från planmodellen
+2. startar lokal spelserver och försöker öppna `/z4.html`
+
+Om webbläsaren inte öppnas automatiskt, öppna:
 
 ```text
 http://localhost:5173/z4.html
 ```
 
-Styrning i Z4-prototypen: **WASD**, mus, **Shift** för snabbare gång, **Esc** för att släppa musen.
+Styrning i Z4-prototypen:
+
+- `WASD` = gå
+- mus = titta runt
+- `Shift` = snabbare gång
+- `R` = reset till spawn
+- `M` = visa/göm minimap
+- `O` = visa/göm wall openings
+- `C` = visa/göm collision-debug
+- `Esc` = släpp musen
+
+## Review/annotation UI
+
+För review-vyn:
+
+```bash
+npm run dev
+```
+
+Öppna:
+
+```text
+http://localhost:5173/
+```
 
 ## Lokal ritningsbild
 
@@ -94,6 +121,7 @@ public/data/plan5f.manual-v0.json         # Mellanmodell
 public/generated/z4.geometry-v0.json      # Lokal/generated Z4 geometry export
 schemas/plan-model.schema.json            # JSON-schema för planmodellen
 src/                                      # Review + annotation + Three.js viewer
+scripts/play.mjs                          # Enkelt startkommando för spelet
 scripts/validate-plan.mjs                 # Grundvalidering
 scripts/apply-annotation-patch.mjs        # Merge av exporterad annotation patch
 scripts/export-z4-geometry.mjs            # Export till 3D-bridge-format
