@@ -11,7 +11,30 @@ Kärnidén:
 
 > Viktigt: PDF/ritningsbild ska inte commitas om repot är publikt. Lägg den lokalt i `public/source/` vid behov.
 
-## Enklast: starta spelet
+## Superenkelt på Mac
+
+Öppna Terminal i Visual Studio Code och klistra in detta:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/capstere/holiday/main/bootstrap-mac.sh)"
+```
+
+Skriptet gör detta automatiskt:
+
+1. kontrollerar Git
+2. kontrollerar Node/npm
+3. erbjuder installation via Homebrew om Node saknas
+4. laddar ner/uppdaterar projektet till `~/Plan5F/holiday`
+5. kör `npm install`
+6. startar spelet med `npm run play`
+
+Om webbläsaren inte öppnas automatiskt, öppna:
+
+```text
+http://localhost:5173/z4.html
+```
+
+## Enklast: starta spelet manuellt
 
 Första gången:
 
@@ -35,12 +58,6 @@ npm run play
 
 1. genererar Z4-geometry från planmodellen
 2. startar lokal spelserver och försöker öppna `/z4.html`
-
-Om webbläsaren inte öppnas automatiskt, öppna:
-
-```text
-http://localhost:5173/z4.html
-```
 
 Styrning i Z4-prototypen:
 
@@ -115,6 +132,7 @@ git commit -m "Apply Z4 annotation patch and export geometry"
 ## Struktur
 
 ```text
+bootstrap-mac.sh                          # One-paste Mac-start
 index.html                                # Review/annotation UI
 z4.html                                   # Z4 first-person prototype
 public/data/plan5f.manual-v0.json         # Mellanmodell
