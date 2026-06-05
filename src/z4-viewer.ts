@@ -90,12 +90,14 @@ app.innerHTML = `
       <button id="reset" type="button">Reset spawn</button>
       <button id="toggle-minimap" type="button">Toggle minimap</button>
       <button id="toggle-openings" type="button">Toggle openings</button>
+      <button id="toggle-collision" type="button">Toggle collision</button>
       <a href="/">Review UI</a>
     </div>
     <div class="runtime-info">
       <span>Room: <strong id="room-name">—</strong></span>
       <span>Position: <strong id="position-readout">—</strong></span>
       <span>Openings: <strong id="openings-readout">—</strong></span>
+      <span>Collision: <strong id="collision-readout">—</strong></span>
     </div>
     <div class="material-legend" aria-label="Material categories">
       <span><i class="mat-floor-lab"></i> lab floor</span>
@@ -104,8 +106,9 @@ app.innerHTML = `
       <span><i class="mat-door"></i> door portal</span>
       <span><i class="mat-opening"></i> wall opening</span>
       <span><i class="mat-prop"></i> prop/collider</span>
+      <span><i class="mat-collision"></i> collision debug</span>
     </div>
-    <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · O = openings · Esc = release mouse. Geometry is v0/v1 candidate data, not final CAD.</p>
+    <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · O = openings · C = collision · Esc = release mouse. Geometry is v0/v1 candidate data, not final CAD.</p>
   </section>
   <section id="viewport"></section>
   <aside id="minimap-panel" class="minimap-panel">
@@ -123,13 +126,15 @@ const startButton = document.querySelector<HTMLButtonElement>('#start');
 const resetButton = document.querySelector<HTMLButtonElement>('#reset');
 const toggleMinimapButton = document.querySelector<HTMLButtonElement>('#toggle-minimap');
 const toggleOpeningsButton = document.querySelector<HTMLButtonElement>('#toggle-openings');
+const toggleCollisionButton = document.querySelector<HTMLButtonElement>('#toggle-collision');
 const roomName = document.querySelector<HTMLElement>('#room-name');
 const positionReadout = document.querySelector<HTMLElement>('#position-readout');
 const openingsReadout = document.querySelector<HTMLElement>('#openings-readout');
+const collisionReadout = document.querySelector<HTMLElement>('#collision-readout');
 const minimapPanel = document.querySelector<HTMLElement>('#minimap-panel');
 const minimapCanvas = document.querySelector<HTMLCanvasElement>('#minimap');
 
-if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !toggleOpeningsButton || !roomName || !positionReadout || !openingsReadout || !minimapPanel || !minimapCanvas) {
+if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !toggleOpeningsButton || !toggleCollisionButton || !roomName || !positionReadout || !openingsReadout || !collisionReadout || !minimapPanel || !minimapCanvas) {
   throw new Error('Missing viewer controls');
 }
 
@@ -142,6 +147,9 @@ const MATERIALS = {
   doorPortal: new THREE.MeshBasicMaterial({ color: 0xfff69a, transparent: true, opacity: 0.42 }),
   emergencyPortal: new THREE.MeshBasicMaterial({ color: 0xa6ffb8, transparent: true, opacity: 0.48 }),
   opening: new THREE.MeshBasicMaterial({ color: 0xff4fd8, transparent: true, opacity: 0.72 }),
+  collisionWall: new THREE.MeshBasicMaterial({ color: 0xff3355, transparent: true, opacity: 0.18 }),
+  collisionProp: new THREE.MeshBasicMaterial({ color: 0xff3355, transparent: true, opacity: 0.38, wireframe: true }),
+  playerRadius: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.24, wireframe: true }),
   propBench: new THREE.MeshStandardMaterial({ color: 0x8b6f4d, roughness: 0.76, metalness: 0.04 }),
   propInstrument: new THREE.MeshStandardMaterial({ color: 0x4d6378, roughness: 0.65, metalness: 0.12 }),
   propFreezer: new THREE.MeshStandardMaterial({ color: 0x8fb4c8, roughness: 0.58, metalness: 0.18 }),
@@ -258,6 +266,35 @@ function createWall(segment: WallSegment): THREE.Mesh {
   return mesh;
 }
 
+function createWallCollisionDebug(segment: WallSegment, playerRadius: number): THREE.Mesh {
+  const [x1, y1] = segment.start_m;
+  const [x2, y2] = segment.end_m;
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  const debugThickness = segment.thickness_m * 2 + playerRadius * 2;
+  const geometry = new THREE.BoxGeometry(length, 0.045, debugThickness);
+  const mesh = new THREE.Mesh(geometry, MATERIALS.collisionWall);
+  mesh.position.set((x1 + x2) / 2, 0.08, (y1 + y2) / 2);
+  mesh.rotation.y = -Math.atan2(y2 - y1, x2 - x1);
+  mesh.name = `COLLISION-${segment.id}`;
+  return mesh;
+}
+
+function createPropCollisionDebug(prop: PropBox): THREE.Mesh | null {
+  if (!prop.collider) return null;
+  const width = Math.max(0.15, Math.abs(prop.size_m[0]));
+  const depth = Math.max(0.15, Math.abs(prop.size_m[1]));
+  const geometry = new THREE.BoxGeometry(width, prop.height_m + 0.04, depth);
+  const mesh = new THREE.Mesh(geometry, MATERIALS.collisionProp);
+  mesh.position.set(prop.center_m[0], prop.height_m / 2, prop.center_m[1]);
+  mesh.name = `COLLISION-${prop.id}`;
+  return mesh;
+}
+
+function createPlayerRadiusDebug(radius: number): THREE.Mesh {
+  const geometry = new THREE.CylinderGeometry(radius, radius, 0.04, 48, 1, true);
+  return new THREE.Mesh(geometry, MATERIALS.playerRadius);
+}
+
 function createDoorMarker(portal: DoorPortal): THREE.Group {
   const group = new THREE.Group();
   const [a, b] = portal.line_m;
@@ -320,6 +357,7 @@ class Minimap {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly bounds: { minX: number; maxX: number; minY: number; maxY: number; pad: number };
   showOpenings = true;
+  showCollision = false;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly data: Z4GeometryExport) {
     const ctx = canvas.getContext('2d');
@@ -347,6 +385,12 @@ class Minimap {
     const offsetX = (this.canvas.width - (maxX - minX + pad * 2) * scale) / 2;
     const offsetY = (this.canvas.height - (maxY - minY + pad * 2) * scale) / 2;
     return [offsetX + (x - minX + pad) * scale, offsetY + (y - minY + pad) * scale];
+  }
+
+  private radiusPx(player: Vec2, radiusM: number): number {
+    const [px] = this.map(player);
+    const [rx] = this.map([player[0] + radiusM, player[1]]);
+    return Math.abs(rx - px);
   }
 
   draw(player: Vec2, yaw: number, room?: WalkableArea): void {
@@ -395,15 +439,40 @@ class Minimap {
       ctx.setLineDash([]);
     }
 
+    if (this.showCollision) {
+      ctx.strokeStyle = 'rgba(255, 51, 85, 0.88)';
+      ctx.lineWidth = 2;
+      for (const wall of this.data.wall_segments) {
+        const [a, b] = [this.map(wall.start_m), this.map(wall.end_m)];
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+    }
+
     for (const prop of this.data.props) {
       const [x1, y1] = this.map([prop.bbox_m[0], prop.bbox_m[1]]);
       const [x2, y2] = this.map([prop.bbox_m[2], prop.bbox_m[3]]);
       const key = `${prop.type} ${prop.label}`.toLowerCase();
       ctx.fillStyle = key.includes('freezer') || key.includes('frys') ? 'rgba(143, 180, 200, 0.78)' : key.includes('instrument') || key.includes('gx') ? 'rgba(95, 135, 170, 0.78)' : 'rgba(255, 155, 95, 0.68)';
       ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+      if (this.showCollision && prop.collider) {
+        ctx.strokeStyle = 'rgba(255, 51, 85, 0.95)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+      }
     }
 
     const [px, py] = this.map(player);
+    if (this.showCollision) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.78)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(px, py, this.radiusPx(player, this.data.player_spawn.radius_m), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     ctx.save();
     ctx.translate(px, py);
     ctx.rotate(-yaw);
@@ -424,6 +493,7 @@ class FirstPersonController {
   private pitch = 0;
   private velocity = new THREE.Vector3();
   showOpeningsCallback?: () => void;
+  showCollisionCallback?: () => void;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -440,6 +510,7 @@ class FirstPersonController {
       if (event.code === 'KeyR') this.reset();
       if (event.code === 'KeyM') minimapPanel.classList.toggle('hidden');
       if (event.code === 'KeyO') this.showOpeningsCallback?.();
+      if (event.code === 'KeyC') this.showCollisionCallback?.();
     });
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
     document.addEventListener('pointerlockchange', () => {
@@ -574,6 +645,19 @@ function buildScene(data: Z4GeometryExport): void {
   (data.wall_openings ?? []).forEach((opening) => openingDebugGroup.add(createOpeningMarker(opening)));
   scene.add(openingDebugGroup);
 
+  const collisionDebugGroup = new THREE.Group();
+  collisionDebugGroup.name = 'collision-debug';
+  collisionDebugGroup.visible = false;
+  data.wall_segments.forEach((segment) => collisionDebugGroup.add(createWallCollisionDebug(segment, data.player_spawn.radius_m)));
+  data.props.forEach((prop) => {
+    const debug = createPropCollisionDebug(prop);
+    if (debug) collisionDebugGroup.add(debug);
+  });
+  const playerRadiusDebug = createPlayerRadiusDebug(data.player_spawn.radius_m);
+  playerRadiusDebug.name = 'COLLISION-player-radius';
+  collisionDebugGroup.add(playerRadiusDebug);
+  scene.add(collisionDebugGroup);
+
   const spawn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), MATERIALS.spawn);
   spawn.position.set(data.player_spawn.position_m[0], 0.03, data.player_spawn.position_m[1]);
   scene.add(spawn);
@@ -586,13 +670,22 @@ function buildScene(data: Z4GeometryExport): void {
     minimap.showOpenings = openingDebugGroup.visible;
     openingsReadout.textContent = `${data.wall_openings?.length ?? 0} ${openingDebugGroup.visible ? 'shown' : 'hidden'}`;
   };
+
+  const toggleCollision = () => {
+    collisionDebugGroup.visible = !collisionDebugGroup.visible;
+    minimap.showCollision = collisionDebugGroup.visible;
+    collisionReadout.textContent = `${collisionDebugGroup.visible ? 'shown' : 'hidden'}`;
+  };
+
   controller.showOpeningsCallback = toggleOpenings;
+  controller.showCollisionCallback = toggleCollision;
 
   startButton.addEventListener('click', () => controller.requestPointerLock());
   renderer.domElement.addEventListener('click', () => controller.requestPointerLock());
   resetButton.addEventListener('click', () => controller.reset());
   toggleMinimapButton.addEventListener('click', () => minimapPanel.classList.toggle('hidden'));
   toggleOpeningsButton.addEventListener('click', toggleOpenings);
+  toggleCollisionButton.addEventListener('click', toggleCollision);
 
   const clock = new THREE.Clock();
   const resize = () => {
@@ -604,6 +697,7 @@ function buildScene(data: Z4GeometryExport): void {
 
   status.textContent = `loaded ${data.walkable_areas.length} rooms, ${data.wall_segments.length} walls, ${data.wall_openings?.length ?? 0} openings, ${data.door_portals.length} portals, ${data.props.length} props`;
   openingsReadout.textContent = `${data.wall_openings?.length ?? 0} shown`;
+  collisionReadout.textContent = 'hidden';
 
   const animate = () => {
     requestAnimationFrame(animate);
@@ -612,6 +706,7 @@ function buildScene(data: Z4GeometryExport): void {
     const room = currentRoom(position, data);
     roomName.textContent = room?.label ?? 'outside walkable area';
     positionReadout.textContent = `${position[0].toFixed(2)} m, ${position[1].toFixed(2)} m`;
+    playerRadiusDebug.position.set(position[0], 0.1, position[1]);
     minimap.draw(position, controller.yawRadians(), room);
     renderer.render(scene, camera);
   };
