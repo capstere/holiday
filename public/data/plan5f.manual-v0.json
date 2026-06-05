@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.0",
   "source": {
     "filename": "Plan 5F V3-4 20240719 2.pdf",
     "page_count": 1,
@@ -12,6 +12,12 @@
     "Allt som inte är säkert får confidence=medium eller low.",
     "Alla dörrar ska bli passager/door objects i 3D-modellen."
   ],
+  "coordinate_system": {
+    "type": "normalized_image_coordinates",
+    "origin": "top-left",
+    "range": "0..1",
+    "note": "Alla koordinater i v0.2 är grova kandidater från visuell zonläsning, inte slutlig CAD-geometri."
+  },
   "zones": [
     {"id":"Z1","name":"Övre vänster: calibration och pipette clean","description":"CALIBRATION LAB, PIPETTE CLEAN STOR, SLUSS och angränsande labbrum.","normalized_bbox":[0.08,0.08,0.34,0.38]},
     {"id":"Z2","name":"Övre mitten: korridor och labbkluster","description":"Lång korridor, labbrum, lab benches, freezers och incubators.","normalized_bbox":[0.34,0.08,0.62,0.52]},
@@ -103,11 +109,73 @@
     {"id":"L-022","text":"INCUBATOR","category":"equipment_label","confidence":"high"},
     {"id":"L-023","text":"SEAL TEST STATION","category":"equipment_label","confidence":"medium"}
   ],
+  "zone_review_status": {
+    "Z4": {
+      "status": "first_real_data_pass",
+      "priority": 1,
+      "recommended_first_walkable_loop": ["R-CM", "R-GX", "R-QC-WIP-5570", "R-DIGITAL-PCR-5535"],
+      "rationale": "Z4 har tydliga rumsnamn, tydlig sluss-/korridorlogik och lagom komplex utrustning för första spelbara prototyp.",
+      "needs_human_verification": true
+    }
+  },
+  "room_polygon_candidates": [
+    {"id":"RPC-Z4-DIGITAL-PCR-5535","source_room_id":"R-DIGITAL-PCR-5535","zone":"Z4","label":"DIGITAL-PCR 5.535","normalized_polygon":[[0.085,0.410],[0.190,0.410],[0.190,0.520],[0.085,0.520]],"confidence":"medium","priority":1,"notes":"Grov rektangel runt digital-PCR-rummet i vänster övre del av Z4. Dörröppning mot sluss/CM måste skäras ut senare."},
+    {"id":"RPC-Z4-QC-WIP-5570","source_room_id":"R-QC-WIP-5570","zone":"Z4","label":"QC WIP 5.570","normalized_polygon":[[0.185,0.470],[0.290,0.470],[0.290,0.585],[0.185,0.585]],"confidence":"medium","priority":1,"notes":"Stor öppen yta centralt i Z4. Bra kandidat för första walkable lab area."},
+    {"id":"RPC-Z4-CM","source_room_id":"R-CM","zone":"Z4","label":"CM","normalized_polygon":[[0.085,0.520],[0.175,0.520],[0.175,0.705],[0.085,0.705]],"confidence":"medium","priority":1,"notes":"Stor vänster nedre labbyta. Innehåller få stora hinder i första passet."},
+    {"id":"RPC-Z4-GX","source_room_id":"R-GX","zone":"Z4","label":"GX","normalized_polygon":[[0.170,0.535],[0.265,0.535],[0.265,0.675],[0.170,0.675]],"confidence":"medium","priority":1,"notes":"GX-rum intill CM och sluss. Dörr mot sluss och trolig koppling mot CM."},
+    {"id":"RPC-Z4-CMAL","source_room_id":"R-CMAL","zone":"Z4","label":"CMAL","normalized_polygon":[[0.160,0.675],[0.230,0.675],[0.230,0.770],[0.160,0.770]],"confidence":"medium","priority":2,"notes":"Nedre del, nära pipette stations och kontors-/servicekorridor."},
+    {"id":"RPC-Z4-PIPETTE-STATIONS","source_room_id":"R-PIPETTE-STATIONS","zone":"Z4","label":"PIPETTE STATIONS","normalized_polygon":[[0.085,0.675],[0.165,0.675],[0.165,0.770],[0.085,0.770]],"confidence":"medium","priority":2,"notes":"Flera arbetsstationer; props/colliders krävs innan full navigering."},
+    {"id":"RPC-Z4-STORAGE-PRINTER-5522","source_room_id":"R-STORAGE-PRINTER-5522","zone":"Z4","label":"STORAGE/PRINTER ROOM 5.522","normalized_polygon":[[0.245,0.540],[0.310,0.540],[0.310,0.600],[0.245,0.600]],"confidence":"low","priority":3,"notes":"Grov placering; verifiera mot crop innan kollisionsgeometri används."},
+    {"id":"RPC-Z4-POST-PCR-5579","source_room_id":"R-POST-PCR-5579","zone":"Z4","label":"POST PCR 5.579","normalized_polygon":[[0.285,0.465],[0.335,0.465],[0.335,0.535],[0.285,0.535]],"confidence":"low","priority":3,"notes":"Tät text/rumskant. Behöver manuell polygon."},
+    {"id":"RPC-Z4-MICROPLATE-5577","source_room_id":"R-MICROPLATE-LAB-5577","zone":"Z4","label":"MICROPLATE LAB 5.577","normalized_polygon":[[0.315,0.475],[0.365,0.475],[0.365,0.535],[0.315,0.535]],"confidence":"low","priority":3,"notes":"Tät teknikyta. Dörrar och väggar måste verifieras före 3D."}
+  ],
+  "door_candidates": [
+    {"id":"DC-Z4-DIGITAL-PCR-SLUSS-01","linked_door_id":"D-Z4-DIGITAL-PCR-01","zone":"Z4","type":"hinged","between":["R-DIGITAL-PCR-5535","R-CM"],"normalized_line":[[0.180,0.500],[0.200,0.500]],"width_m_estimate":0.9,"swing_visible":true,"confidence":"medium","priority":1,"notes":"Visuell dörröppning från Digital-PCR mot sluss/CM-området. Exakt angränsande rum behöver verifieras."},
+    {"id":"DC-Z4-SLUSS-QC-WIP-01","zone":"Z4","type":"hinged","between":["R-QC-WIP-5570","R-CM"],"normalized_line":[[0.185,0.535],[0.205,0.535]],"width_m_estimate":0.9,"swing_visible":true,"confidence":"medium","priority":1,"notes":"En av slussdörrarna mellan QC WIP och CM/GX-kärnan."},
+    {"id":"DC-Z4-GX-SLUSS-01","linked_door_id":"D-Z4-GX-01","zone":"Z4","type":"hinged","between":["R-GX","R-CM"],"normalized_line":[[0.170,0.610],[0.190,0.610]],"width_m_estimate":0.9,"swing_visible":true,"confidence":"medium","priority":1,"notes":"Dörr mellan GX och sluss/CM-område. Ska bli passager i första spelbara loop."},
+    {"id":"DC-Z4-CM-CMAL-01","zone":"Z4","type":"opening","between":["R-CM","R-CMAL"],"normalized_line":[[0.165,0.675],[0.185,0.675]],"width_m_estimate":1.0,"swing_visible":false,"confidence":"low","priority":2,"notes":"Möjlig öppning/passering mot CMAL/Pipette Stations. Verifieras före användning."},
+    {"id":"DC-Z4-QC-WIP-POST-PCR-01","zone":"Z4","type":"hinged","between":["R-QC-WIP-5570","R-POST-PCR-5579"],"normalized_line":[[0.285,0.525],[0.305,0.525]],"width_m_estimate":0.9,"swing_visible":true,"confidence":"low","priority":3,"notes":"Tät dörrsymbol vid Post PCR/Microplate-labb. Kräver crop."},
+    {"id":"DC-Z4-STORAGE-PRINTER-CORRIDOR-01","zone":"Z4","type":"hinged","between":["R-STORAGE-PRINTER-5522","R-CORRIDOR-MAIN-5400"],"normalized_line":[[0.255,0.600],[0.275,0.600]],"width_m_estimate":0.9,"swing_visible":true,"confidence":"medium","priority":2,"notes":"Dörr från storage/printer mot servicepassage/korridor."},
+    {"id":"DC-Z4-EXIT-CM-01","zone":"Z4","type":"emergency_exit","between":["R-CM"],"normalized_line":[[0.130,0.525],[0.150,0.525]],"width_m_estimate":1.0,"swing_visible":false,"emergency_exit":true,"confidence":"medium","priority":2,"notes":"Kopplas till NÖD UT i CM/GX/SLUSS-området. Position ska verifieras."}
+  ],
+  "equipment_candidates": [
+    {"id":"EC-Z4-DIGITAL-PCR-BENCHES-01","zone":"Z4","room_id":"R-DIGITAL-PCR-5535","type":"lab_bench_cluster","label":"bench cluster","normalized_bbox":[0.095,0.445,0.165,0.505],"collider_mode":"solid_low","confidence":"medium","priority":1,"notes":"Bänkar i Digital-PCR; första version kan representeras som låg rektangulär collider."},
+    {"id":"EC-Z4-CM-WORKSTATIONS-01","zone":"Z4","room_id":"R-CM","type":"workstation_cluster","label":"CM workstations","normalized_bbox":[0.095,0.590,0.155,0.650],"collider_mode":"solid_low","confidence":"medium","priority":1,"notes":"Arbetsstationer i CM, men håll gångytan öppen först."},
+    {"id":"EC-Z4-GX-WORKSTATIONS-01","zone":"Z4","room_id":"R-GX","type":"instrument_cluster","label":"GX instruments/workstations","normalized_bbox":[0.190,0.585,0.245,0.645],"collider_mode":"solid_medium","confidence":"medium","priority":1,"notes":"GX-instrument bör blockera spelare när rummets väggar är verifierade."},
+    {"id":"EC-Z4-PIPETTE-STATIONS-01","zone":"Z4","room_id":"R-PIPETTE-STATIONS","type":"pipette_station_cluster","label":"PIPETTE STATIONS","normalized_bbox":[0.095,0.705,0.150,0.755],"collider_mode":"solid_low","confidence":"medium","priority":2,"notes":"Flera små stationer; förenkla som ett par bänkar i v1."},
+    {"id":"EC-Z4-FREEZERS-5578-01","zone":"Z4","room_id":"R-MICROPLATE-LAB-5577","type":"freezer_cluster","label":"FREEZERS / FRYS","normalized_bbox":[0.305,0.500,0.350,0.535],"collider_mode":"solid_high","confidence":"low","priority":3,"notes":"Koppling till korrekt rum behöver verifieras; troligen nära 5.578/5.577."}
+  ],
+  "navigation_graph": {
+    "version": "0.1.0",
+    "status": "candidate",
+    "nodes": [
+      {"id":"NG-Z4-CM","room_id":"R-CM","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-GX","room_id":"R-GX","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-QC-WIP","room_id":"R-QC-WIP-5570","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-DIGITAL-PCR","room_id":"R-DIGITAL-PCR-5535","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-CMAL","room_id":"R-CMAL","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-PIPETTE-STATIONS","room_id":"R-PIPETTE-STATIONS","zone":"Z4","kind":"room","confidence":"medium"},
+      {"id":"NG-Z4-STORAGE-PRINTER","room_id":"R-STORAGE-PRINTER-5522","zone":"Z4","kind":"room","confidence":"low"},
+      {"id":"NG-Z4-SLUSS-CORE","zone":"Z4","kind":"junction","label":"SLUSS / core junction","confidence":"medium"},
+      {"id":"NG-Z4-SERVICE-CORRIDOR","zone":"Z4","kind":"corridor","label":"service passage toward 5.400/5.448","confidence":"low"}
+    ],
+    "edges": [
+      {"id":"NGE-Z4-CM-SLUSS","from":"NG-Z4-CM","to":"NG-Z4-SLUSS-CORE","door_candidate_id":"DC-Z4-SLUSS-QC-WIP-01","confidence":"medium","priority":1},
+      {"id":"NGE-Z4-GX-SLUSS","from":"NG-Z4-GX","to":"NG-Z4-SLUSS-CORE","door_candidate_id":"DC-Z4-GX-SLUSS-01","confidence":"medium","priority":1},
+      {"id":"NGE-Z4-QC-SLUSS","from":"NG-Z4-QC-WIP","to":"NG-Z4-SLUSS-CORE","door_candidate_id":"DC-Z4-SLUSS-QC-WIP-01","confidence":"medium","priority":1},
+      {"id":"NGE-Z4-DPCR-SLUSS","from":"NG-Z4-DIGITAL-PCR","to":"NG-Z4-SLUSS-CORE","door_candidate_id":"DC-Z4-DIGITAL-PCR-SLUSS-01","confidence":"medium","priority":1},
+      {"id":"NGE-Z4-CM-CMAL","from":"NG-Z4-CM","to":"NG-Z4-CMAL","door_candidate_id":"DC-Z4-CM-CMAL-01","confidence":"low","priority":2},
+      {"id":"NGE-Z4-CM-PIPETTE","from":"NG-Z4-CM","to":"NG-Z4-PIPETTE-STATIONS","confidence":"low","priority":2},
+      {"id":"NGE-Z4-STORAGE-CORRIDOR","from":"NG-Z4-STORAGE-PRINTER","to":"NG-Z4-SERVICE-CORRIDOR","door_candidate_id":"DC-Z4-STORAGE-PRINTER-CORRIDOR-01","confidence":"medium","priority":2},
+      {"id":"NGE-Z4-SLUSS-CORRIDOR","from":"NG-Z4-SLUSS-CORE","to":"NG-Z4-SERVICE-CORRIDOR","confidence":"low","priority":1}
+    ]
+  },
   "unresolved_questions": [
     "Lås exakt skala från original-PDF/CAD innan 3D-världen genereras.",
     "Gör zonvisa högupplösta crops och verifiera alla dörrar manuellt.",
     "Separera vägglinjer från dörrslag, text, möbler och utrustning i bildmasker.",
     "Fyll koordinater för rumspolygoner, dörrportaler och walkable_areas.",
-    "Bestäm vilka labbutrustningar som ska vara kollisionsobjekt och vilka som bara ska vara visuella props."
+    "Bestäm vilka labbutrustningar som ska vara kollisionsobjekt och vilka som bara ska vara visuella props.",
+    "Z4 v0.2-koordinater är grova visuella kandidater och måste korrigeras i annotation UI innan de används som slutlig 3D-geometri."
   ]
 }
