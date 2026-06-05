@@ -153,7 +153,8 @@ th {
   font-size: 0.9rem;
 }
 
-.review-controls select {
+.review-controls select,
+.review-controls button {
   background: #17191d;
   color: #f5f5f5;
   border: 1px solid #3a3f4b;
@@ -161,9 +162,37 @@ th {
   padding: 5px 8px;
 }
 
+.review-controls button {
+  cursor: pointer;
+}
+
+.review-controls button:hover {
+  background: #222631;
+}
+
+.annotation-toggle {
+  border-left: 1px solid #3a3f4b;
+  padding-left: 14px;
+}
+
 .control-status {
   color: #aab1c0;
   font-size: 0.85rem;
+}
+
+.annotation-output {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid #2b2d31;
+  border-radius: 12px;
+  background: #0f1115;
+  color: #dce0e8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
 }
 
 .plan-canvas {
@@ -278,6 +307,34 @@ th {
   vector-effect: non-scaling-stroke;
 }
 
+.drag-handle {
+  opacity: 0;
+  pointer-events: none;
+  fill: #ffffff;
+  stroke: #111318;
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.annotation-mode .drag-handle {
+  opacity: 0.94;
+  pointer-events: auto;
+}
+
+.annotation-mode .candidate {
+  cursor: default;
+}
+
+.drag-handle.dragging {
+  cursor: grabbing;
+  fill: #fffc9e;
+  stroke: #000;
+}
+
+.room-handle { fill: #a7d4ff; }
+.door-handle { fill: #fff09a; }
+
 .equipment-box {
   position: absolute;
   z-index: 3;
@@ -322,6 +379,7 @@ th {
 .legend-room { background: rgba(60, 160, 255, 0.45); }
 .legend-door { background: rgba(255, 235, 120, 0.9); }
 .legend-equipment { background: rgba(255, 150, 90, 0.72); }
+.legend-handle { background: #dce0e8; }
 .legend-hint { color: #aab1c0; }
 
 .graph-panel {
