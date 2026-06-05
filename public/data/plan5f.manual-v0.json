@@ -1,0 +1,113 @@
+{
+  "schema_version": "0.1.0",
+  "source": {
+    "filename": "Plan 5F V3-4 20240719 2.pdf",
+    "page_count": 1,
+    "scale_note": "Ritningen visar meterskalor. Tidigare mätning: ungefär 10 m ≈ 411 px i renderad bild. Måste verifieras mot original-PDF/CAD innan slutlig 3D-skala låses. PDF/bild ska inte commitas om repot är publikt."
+  },
+  "extraction_policy": [
+    "Tolka inte text som vägg.",
+    "Tolka inte dörrslag/bågar som vägg.",
+    "Tolka inte labbänkar och utrustning som byggnadsstruktur.",
+    "Allt som inte är säkert får confidence=medium eller low.",
+    "Alla dörrar ska bli passager/door objects i 3D-modellen."
+  ],
+  "zones": [
+    {"id":"Z1","name":"Övre vänster: calibration och pipette clean","description":"CALIBRATION LAB, PIPETTE CLEAN STOR, SLUSS och angränsande labbrum.","normalized_bbox":[0.08,0.08,0.34,0.38]},
+    {"id":"Z2","name":"Övre mitten: korridor och labbkluster","description":"Lång korridor, labbrum, lab benches, freezers och incubators.","normalized_bbox":[0.34,0.08,0.62,0.52]},
+    {"id":"Z3","name":"Övre höger: X LAB, AIR LOCK, FI, BSL3","description":"X LAB, air locks, FI, FUME CHAMB, BSL3 och många labbänkar/instrument.","normalized_bbox":[0.62,0.08,0.96,0.62]},
+    {"id":"Z4","name":"Nedre vänster: CM/GX/Pipette stations","description":"DIGITAL-PCR, QC WIP, CM, GX, CMAL och pipette stations.","normalized_bbox":[0.08,0.38,0.38,0.82]},
+    {"id":"Z5","name":"Nedre mitten: kontor/mötesrum/service","description":"Kontor, mötesrum, storage, server room, lager och korridorer.","normalized_bbox":[0.38,0.52,0.68,0.96]},
+    {"id":"Z6","name":"Nedre höger: kontor/open office","description":"Mindre kontorsrum och öppna arbetsplatser.","normalized_bbox":[0.68,0.62,0.96,0.96]}
+  ],
+  "rooms": [
+    {"id":"R-CALIBRATION-LAB","name":"CALIBRATION LAB","category":"lab","zone":"Z1","readable_labels":["CALIBRATION LAB"],"confidence":"high"},
+    {"id":"R-PIPETTE-CLEAN-STOR","name":"PIPETTE CLEAN STOR","category":"storage","zone":"Z1","readable_labels":["PIPETTE","CLEAN STOR"],"confidence":"high"},
+    {"id":"R-SLUSS-5533","name":"SLUSS","room_number":"5.533","category":"airlock","zone":"Z1","readable_labels":["SLUSS","5.533"],"confidence":"medium"},
+    {"id":"R-DIGITAL-PCR-5535","name":"DIGITAL-PCR","room_number":"5.535","category":"lab","zone":"Z4","readable_labels":["DIGITAL-PCR","5.535"],"confidence":"high"},
+    {"id":"R-QC-WIP-5570","name":"QC WIP","room_number":"5.570","category":"lab","zone":"Z4","readable_labels":["QC WIP","5.570"],"confidence":"high"},
+    {"id":"R-CM","name":"CM","category":"lab","zone":"Z4","readable_labels":["CM"],"confidence":"high"},
+    {"id":"R-GX","name":"GX","category":"lab","zone":"Z4","readable_labels":["GX"],"confidence":"high"},
+    {"id":"R-CMAL","name":"CMAL","category":"lab","zone":"Z4","readable_labels":["CMAL"],"confidence":"high"},
+    {"id":"R-PIPETTE-STATIONS","name":"PIPETTE STATIONS","category":"lab","zone":"Z4","readable_labels":["PIPETTE STATIONS"],"confidence":"high"},
+    {"id":"R-STORAGE-PRINTER-5522","name":"STORAGE/PRINTER ROOM","room_number":"5.522","category":"storage","zone":"Z4","readable_labels":["STORAGE/PRINTER ROOM","5.522"],"confidence":"high"},
+    {"id":"R-POST-PCR-5579","name":"POST PCR","room_number":"5.579","category":"lab","zone":"Z4","readable_labels":["POST PCR","5.579"],"confidence":"medium"},
+    {"id":"R-MICROPLATE-LAB-5577","name":"MICROPLATE LAB","room_number":"5.577","category":"lab","zone":"Z4","readable_labels":["MICROPLATE LAB","5.577"],"confidence":"medium"},
+    {"id":"R-SERVER-5727","name":"SERVER ROOM","room_number":"5.727","category":"technical","zone":"Z5","readable_labels":["SERVER ROOM","5.727"],"confidence":"medium"},
+    {"id":"R-X-LAB-5421","name":"X LAB","room_number":"5.421","category":"lab","zone":"Z3","readable_labels":["X LAB","5.421"],"confidence":"high"},
+    {"id":"R-AIR-LOCK-LEFT","name":"AIR LOCK","category":"airlock","zone":"Z3","readable_labels":["AIR LOCK"],"confidence":"high"},
+    {"id":"R-AIR-LOCK-RIGHT","name":"AIR LOCK","category":"airlock","zone":"Z3","readable_labels":["AIR LOCK"],"confidence":"high"},
+    {"id":"R-FI","name":"FI","category":"lab","zone":"Z3","readable_labels":["FI"],"confidence":"medium"},
+    {"id":"R-FUME-CHAMB","name":"FUME CHAMB","category":"lab","zone":"Z3","readable_labels":["FUME CHAMB"],"confidence":"high"},
+    {"id":"R-BSL3","name":"BSL3","category":"lab","zone":"Z3","readable_labels":["BSL3"],"confidence":"high"},
+    {"id":"R-OFFICE-LOWER-RIGHT","name":"Open office / kontorszon","category":"office","zone":"Z6","readable_labels":[],"needs_verification":true,"confidence":"medium"},
+    {"id":"R-CORRIDOR-MAIN-5400","name":"Main corridor / 5.400","room_number":"5.400","category":"corridor","zone":"Z2","readable_labels":["5.400"],"needs_verification":true,"confidence":"medium"}
+  ],
+  "doors": [
+    {"id":"D-Z1-CALIBRATION-01","type":"hinged","zone":"Z1","between":["R-CALIBRATION-LAB","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z1-PIPETTE-CLEAN-01","type":"hinged","zone":"Z1","between":["R-PIPETTE-CLEAN-STOR","R-SLUSS-5533"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z4-DIGITAL-PCR-01","type":"hinged","zone":"Z4","between":["R-DIGITAL-PCR-5535","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z4-QC-WIP-01","type":"hinged","zone":"Z4","between":["R-QC-WIP-5570","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z4-GX-01","type":"hinged","zone":"Z4","between":["R-GX","R-CM"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z3-XLAB-AIRLOCK-01","type":"hinged","zone":"Z3","between":["R-X-LAB-5421","R-AIR-LOCK-LEFT"],"swing_visible":true,"emergency_exit":false,"confidence":"high"},
+    {"id":"D-Z3-AIRLOCK-CORRIDOR-01","type":"hinged","zone":"Z3","between":["R-AIR-LOCK-LEFT","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"high"},
+    {"id":"D-Z3-FUME-CHAMB-01","type":"hinged","zone":"Z3","between":["R-FUME-CHAMB","R-BSL3"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z3-BSL3-01","type":"hinged","zone":"Z3","between":["R-BSL3","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"},
+    {"id":"D-Z5-SERVER-01","type":"hinged","zone":"Z5","between":["R-SERVER-5727","R-CORRIDOR-MAIN-5400"],"swing_visible":true,"emergency_exit":false,"confidence":"medium"}
+  ],
+  "emergency_exits": [
+    {"id":"EXIT-Z1-01","type":"emergency_exit","zone":"Z1","label":"NÖD UT","swing_visible":false,"emergency_exit":true,"confidence":"medium"},
+    {"id":"EXIT-Z2-01","type":"emergency_exit","zone":"Z2","label":"NÖD UT","swing_visible":false,"emergency_exit":true,"confidence":"medium"},
+    {"id":"EXIT-Z3-BSL3-01","type":"emergency_exit","zone":"Z3","label":"NÖD UT near BSL3/FI","swing_visible":false,"emergency_exit":true,"confidence":"medium"},
+    {"id":"EXIT-Z4-CM-01","type":"emergency_exit","zone":"Z4","label":"NÖD UT near CM/GX","swing_visible":false,"emergency_exit":true,"confidence":"medium"},
+    {"id":"EXIT-Z6-OFFICE-01","type":"emergency_exit","zone":"Z6","label":"NÖD UT near office zone","swing_visible":false,"emergency_exit":true,"confidence":"low"}
+  ],
+  "equipment": [
+    {"id":"EQ-LAF-01","type":"laf","label":"LAF","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-LAB-BENCH-01","type":"lab_bench","label":"LAB BENCH","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-LAB-BENCH-GX-01","type":"lab_bench_gx","label":"LAB BENCH GX","zone":"Z3","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-INFINITY80-01","type":"instrument","label":"INFINITY 80","zone":"Z3","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-INFINITY48-01","type":"instrument","label":"INFINITY 48","zone":"Z3","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-FREEZER-80-01","type":"freezer","label":"-80°C","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-FREEZER-20-01","type":"freezer","label":"-20","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-FRIDGE-4C-01","type":"fridge","label":"4°C","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-INCUBATOR-01","type":"incubator","label":"INCUBATOR","zone":"Z2","should_block_player":true,"confidence":"high"},
+    {"id":"EQ-SEAL-TEST-01","type":"station","label":"SEAL TEST STATION","zone":"Z2","should_block_player":true,"confidence":"medium"},
+    {"id":"EQ-CAL-TROLLEY-01","type":"trolley","label":"CAL TROLLEY","zone":"Z2","should_block_player":true,"confidence":"medium"},
+    {"id":"EQ-SHELVING-01","type":"shelving","label":"SHELVING","zone":"Z3","should_block_player":true,"confidence":"medium"},
+    {"id":"EQ-SHOWER-01","type":"shower","label":"SHOWER","zone":"Z3","should_block_player":false,"confidence":"medium"},
+    {"id":"EQ-CUPBOARD-01","type":"cupboard","label":"CUPBOARD/SKÅP","zone":"Z2","should_block_player":true,"confidence":"medium"}
+  ],
+  "labels": [
+    {"id":"L-001","text":"NÖD UT","category":"safety_label","confidence":"high"},
+    {"id":"L-002","text":"CALIBRATION LAB","zone":"Z1","category":"room_name","confidence":"high"},
+    {"id":"L-003","text":"PIPETTE CLEAN STOR","zone":"Z1","category":"room_name","confidence":"high"},
+    {"id":"L-004","text":"SLUSS","zone":"Z1","category":"room_name","confidence":"high"},
+    {"id":"L-005","text":"DIGITAL-PCR","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-006","text":"QC WIP","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-007","text":"CM","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-008","text":"GX","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-009","text":"CMAL","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-010","text":"PIPETTE STATIONS","zone":"Z4","category":"room_name","confidence":"high"},
+    {"id":"L-011","text":"X LAB","zone":"Z3","category":"room_name","confidence":"high"},
+    {"id":"L-012","text":"AIR LOCK","zone":"Z3","category":"room_name","confidence":"high"},
+    {"id":"L-013","text":"FUME CHAMB","zone":"Z3","category":"room_name","confidence":"high"},
+    {"id":"L-014","text":"BSL3","zone":"Z3","category":"room_name","confidence":"high"},
+    {"id":"L-015","text":"LAB BENCH","category":"equipment_label","confidence":"high"},
+    {"id":"L-016","text":"LAF","category":"equipment_label","confidence":"high"},
+    {"id":"L-017","text":"INFINITY 80","category":"equipment_label","confidence":"high"},
+    {"id":"L-018","text":"INFINITY 48","category":"equipment_label","confidence":"high"},
+    {"id":"L-019","text":"4°C","category":"equipment_label","confidence":"high"},
+    {"id":"L-020","text":"-80°C","category":"equipment_label","confidence":"high"},
+    {"id":"L-021","text":"-20","category":"equipment_label","confidence":"high"},
+    {"id":"L-022","text":"INCUBATOR","category":"equipment_label","confidence":"high"},
+    {"id":"L-023","text":"SEAL TEST STATION","category":"equipment_label","confidence":"medium"}
+  ],
+  "unresolved_questions": [
+    "Lås exakt skala från original-PDF/CAD innan 3D-världen genereras.",
+    "Gör zonvisa högupplösta crops och verifiera alla dörrar manuellt.",
+    "Separera vägglinjer från dörrslag, text, möbler och utrustning i bildmasker.",
+    "Fyll koordinater för rumspolygoner, dörrportaler och walkable_areas.",
+    "Bestäm vilka labbutrustningar som ska vara kollisionsobjekt och vilka som bara ska vara visuella props."
+  ]
+}
