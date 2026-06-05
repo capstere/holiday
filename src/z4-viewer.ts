@@ -97,6 +97,14 @@ app.innerHTML = `
       <span>Position: <strong id="position-readout">—</strong></span>
       <span>Openings: <strong id="openings-readout">—</strong></span>
     </div>
+    <div class="material-legend" aria-label="Material categories">
+      <span><i class="mat-floor-lab"></i> lab floor</span>
+      <span><i class="mat-floor-support"></i> support/storage</span>
+      <span><i class="mat-wall"></i> wall</span>
+      <span><i class="mat-door"></i> door portal</span>
+      <span><i class="mat-opening"></i> wall opening</span>
+      <span><i class="mat-prop"></i> prop/collider</span>
+    </div>
     <p>WASD = move · mouse = look · Shift = faster · R = reset · M = minimap · O = openings · Esc = release mouse. Geometry is v0/v1 candidate data, not final CAD.</p>
   </section>
   <section id="viewport"></section>
@@ -123,6 +131,43 @@ const minimapCanvas = document.querySelector<HTMLCanvasElement>('#minimap');
 
 if (!viewport || !status || !startButton || !resetButton || !toggleMinimapButton || !toggleOpeningsButton || !roomName || !positionReadout || !openingsReadout || !minimapPanel || !minimapCanvas) {
   throw new Error('Missing viewer controls');
+}
+
+const MATERIALS = {
+  floorLab: new THREE.MeshStandardMaterial({ color: 0x2c465f, roughness: 0.96, metalness: 0.0 }),
+  floorSupport: new THREE.MeshStandardMaterial({ color: 0x37402f, roughness: 0.96, metalness: 0.0 }),
+  floorLowConfidence: new THREE.MeshStandardMaterial({ color: 0x4d3f42, roughness: 0.96, metalness: 0.0 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xd6dde8, roughness: 0.82, metalness: 0.0 }),
+  wallLowConfidence: new THREE.MeshStandardMaterial({ color: 0xb9a3a7, roughness: 0.86, metalness: 0.0 }),
+  doorPortal: new THREE.MeshBasicMaterial({ color: 0xfff69a, transparent: true, opacity: 0.42 }),
+  emergencyPortal: new THREE.MeshBasicMaterial({ color: 0xa6ffb8, transparent: true, opacity: 0.48 }),
+  opening: new THREE.MeshBasicMaterial({ color: 0xff4fd8, transparent: true, opacity: 0.72 }),
+  propBench: new THREE.MeshStandardMaterial({ color: 0x8b6f4d, roughness: 0.76, metalness: 0.04 }),
+  propInstrument: new THREE.MeshStandardMaterial({ color: 0x4d6378, roughness: 0.65, metalness: 0.12 }),
+  propFreezer: new THREE.MeshStandardMaterial({ color: 0x8fb4c8, roughness: 0.58, metalness: 0.18 }),
+  propStorage: new THREE.MeshStandardMaterial({ color: 0x7b7567, roughness: 0.72, metalness: 0.03 }),
+  propDefault: new THREE.MeshStandardMaterial({ color: 0xb88452, roughness: 0.72, metalness: 0.05 }),
+  spawn: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+};
+
+function floorMaterialFor(area: WalkableArea): THREE.Material {
+  if (area.confidence === 'low') return MATERIALS.floorLowConfidence;
+  const label = `${area.label} ${area.source_room_id}`.toLowerCase();
+  if (label.includes('storage') || label.includes('printer') || label.includes('freezer')) return MATERIALS.floorSupport;
+  return MATERIALS.floorLab;
+}
+
+function wallMaterialFor(segment: WallSegment): THREE.Material {
+  return segment.confidence === 'low' ? MATERIALS.wallLowConfidence : MATERIALS.wall;
+}
+
+function propMaterialFor(prop: PropBox): THREE.Material {
+  const key = `${prop.type} ${prop.label}`.toLowerCase();
+  if (key.includes('freezer') || key.includes('frys')) return MATERIALS.propFreezer;
+  if (key.includes('instrument') || key.includes('gx')) return MATERIALS.propInstrument;
+  if (key.includes('bench') || key.includes('station') || key.includes('work')) return MATERIALS.propBench;
+  if (key.includes('storage') || key.includes('shelving')) return MATERIALS.propStorage;
+  return MATERIALS.propDefault;
 }
 
 function distancePointToSegment(point: Vec2, a: Vec2, b: Vec2): number {
@@ -191,8 +236,7 @@ function createFloor(area: WalkableArea): THREE.Mesh {
   shape.closePath();
   const geometry = new THREE.ShapeGeometry(shape);
   geometry.rotateX(Math.PI / 2);
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0.0 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, floorMaterialFor(area));
   mesh.name = area.id;
   mesh.receiveShadow = true;
   return mesh;
@@ -205,8 +249,7 @@ function createWall(segment: WallSegment): THREE.Mesh {
   const height = segment.height_m;
   const thickness = segment.thickness_m;
   const geometry = new THREE.BoxGeometry(length, height, thickness);
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.0 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, wallMaterialFor(segment));
   mesh.position.set((x1 + x2) / 2, height / 2, (y1 + y2) / 2);
   mesh.rotation.y = -Math.atan2(y2 - y1, x2 - x1);
   mesh.name = segment.id;
@@ -221,8 +264,7 @@ function createDoorMarker(portal: DoorPortal): THREE.Group {
   const center = portal.center_m;
   const length = Math.max(0.25, Math.hypot(b[0] - a[0], b[1] - a[1]));
   const geometry = new THREE.BoxGeometry(length, 2.05, 0.05);
-  const material = new THREE.MeshBasicMaterial({ color: 0xfff69a, transparent: true, opacity: 0.35 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, portal.emergency_exit ? MATERIALS.emergencyPortal : MATERIALS.doorPortal);
   mesh.position.set(center[0], 1.05, center[1]);
   mesh.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
   group.add(mesh);
@@ -237,8 +279,7 @@ function createOpeningMarker(opening: WallOpening): THREE.Group {
   const [a, b] = [opening.start_m, opening.end_m];
   const length = Math.max(0.12, Math.hypot(b[0] - a[0], b[1] - a[1]));
   const geometry = new THREE.BoxGeometry(length, 0.12, 0.38);
-  const material = new THREE.MeshBasicMaterial({ color: 0xff4fd8, transparent: true, opacity: 0.72 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, MATERIALS.opening);
   mesh.position.set(opening.center_m[0], 0.08, opening.center_m[1]);
   mesh.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
   mesh.name = opening.id;
@@ -255,8 +296,7 @@ function createProp(prop: PropBox): THREE.Mesh {
   const width = Math.max(0.15, Math.abs(prop.size_m[0]));
   const depth = Math.max(0.15, Math.abs(prop.size_m[1]));
   const geometry = new THREE.BoxGeometry(width, prop.height_m, depth);
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.72, metalness: 0.05 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, propMaterialFor(prop));
   mesh.position.set(prop.center_m[0], prop.height_m / 2, prop.center_m[1]);
   mesh.name = prop.id;
   mesh.castShadow = true;
@@ -323,8 +363,9 @@ class Minimap {
         else ctx.lineTo(x, y);
       });
       ctx.closePath();
-      ctx.fillStyle = area.id === room?.id ? 'rgba(125, 215, 255, 0.28)' : 'rgba(120, 180, 255, 0.14)';
-      ctx.strokeStyle = 'rgba(205, 225, 255, 0.65)';
+      const isSupport = `${area.label} ${area.source_room_id}`.toLowerCase().match(/storage|printer|freezer/);
+      ctx.fillStyle = area.id === room?.id ? 'rgba(125, 215, 255, 0.32)' : isSupport ? 'rgba(150, 180, 110, 0.16)' : 'rgba(120, 180, 255, 0.14)';
+      ctx.strokeStyle = area.confidence === 'low' ? 'rgba(255, 170, 170, 0.72)' : 'rgba(205, 225, 255, 0.65)';
       ctx.lineWidth = 1.5;
       ctx.fill();
       ctx.stroke();
@@ -354,10 +395,11 @@ class Minimap {
       ctx.setLineDash([]);
     }
 
-    ctx.fillStyle = 'rgba(255, 155, 95, 0.68)';
     for (const prop of this.data.props) {
       const [x1, y1] = this.map([prop.bbox_m[0], prop.bbox_m[1]]);
       const [x2, y2] = this.map([prop.bbox_m[2], prop.bbox_m[3]]);
+      const key = `${prop.type} ${prop.label}`.toLowerCase();
+      ctx.fillStyle = key.includes('freezer') || key.includes('frys') ? 'rgba(143, 180, 200, 0.78)' : key.includes('instrument') || key.includes('gx') ? 'rgba(95, 135, 170, 0.78)' : 'rgba(255, 155, 95, 0.68)';
       ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
     }
 
@@ -503,10 +545,10 @@ function buildScene(data: Z4GeometryExport): void {
   renderer.shadowMap.enabled = true;
   viewport.appendChild(renderer.domElement);
 
-  const ambient = new THREE.HemisphereLight(0xffffff, 0x2a2a35, 1.4);
+  const ambient = new THREE.HemisphereLight(0xffffff, 0x2a2a35, 1.55);
   scene.add(ambient);
 
-  const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+  const sun = new THREE.DirectionalLight(0xffffff, 1.95);
   sun.position.set(10, 22, 12);
   sun.castShadow = true;
   scene.add(sun);
@@ -532,7 +574,7 @@ function buildScene(data: Z4GeometryExport): void {
   (data.wall_openings ?? []).forEach((opening) => openingDebugGroup.add(createOpeningMarker(opening)));
   scene.add(openingDebugGroup);
 
-  const spawn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  const spawn = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), MATERIALS.spawn);
   spawn.position.set(data.player_spawn.position_m[0], 0.03, data.player_spawn.position_m[1]);
   scene.add(spawn);
 
