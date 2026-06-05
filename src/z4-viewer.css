@@ -106,6 +106,7 @@ body {
 .mat-door { background: #fff69a; }
 .mat-opening { background: #ff4fd8; }
 .mat-prop { background: #b88452; }
+.mat-collision { background: #ff3355; }
 
 .controls {
   display: flex;
@@ -134,6 +135,10 @@ a:hover {
 
 #toggle-openings {
   border-color: rgba(255, 79, 216, 0.55);
+}
+
+#toggle-collision {
+  border-color: rgba(255, 51, 85, 0.65);
 }
 
 .minimap-panel {
