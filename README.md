@@ -19,6 +19,27 @@ npm run validate:plan
 npm run dev
 ```
 
+Review UI:
+
+```text
+http://localhost:5173/
+```
+
+Z4 first-person prototype:
+
+```bash
+npm run export:z4-geometry
+npm run dev
+```
+
+Öppna sedan:
+
+```text
+http://localhost:5173/z4.html
+```
+
+Styrning i Z4-prototypen: **WASD**, mus, **Shift** för snabbare gång, **Esc** för att släppa musen.
+
 ## Lokal ritningsbild
 
 För att se planritningen under overlayn, lägg en lokal bild här:
@@ -50,22 +71,32 @@ npm run apply:annotation-patch -- local-patches/z4.patch.json
 npm run validate:plan
 ```
 
-7. Kontrollera diffen och committa om den ser bra ut:
+7. Exportera 3D-bridge-geometry:
 
 ```bash
-git diff public/data/plan5f.manual-v0.json
-git add public/data/plan5f.manual-v0.json
-git commit -m "Apply Z4 annotation patch"
+npm run export:z4-geometry
+```
+
+8. Kontrollera diffen och committa om den ser bra ut:
+
+```bash
+git diff public/data/plan5f.manual-v0.json public/generated/z4.geometry-v0.json
+git add public/data/plan5f.manual-v0.json public/generated/z4.geometry-v0.json
+git commit -m "Apply Z4 annotation patch and export geometry"
 ```
 
 ## Struktur
 
 ```text
-public/data/plan5f.manual-v0.json        # Mellanmodell
+index.html                                # Review/annotation UI
+z4.html                                   # Z4 first-person prototype
+public/data/plan5f.manual-v0.json         # Mellanmodell
+public/generated/z4.geometry-v0.json      # Lokal/generated Z4 geometry export
 schemas/plan-model.schema.json            # JSON-schema för planmodellen
-src/                                      # Review + annotation UI
+src/                                      # Review + annotation + Three.js viewer
 scripts/validate-plan.mjs                 # Grundvalidering
 scripts/apply-annotation-patch.mjs        # Merge av exporterad annotation patch
+scripts/export-z4-geometry.mjs            # Export till 3D-bridge-format
 docs/                                     # Nedbrytning och regler
 codex/tasks/                              # Uppgifter att ge Codex stegvis
 ```
@@ -82,4 +113,4 @@ All geometri ska byggas från ett rent mellanlager:
 
 ## Nästa steg
 
-Börja i `docs/FLOORPLAN_BREAKDOWN.md`, `docs/ZONE_BY_ZONE_REVIEW.md` och `codex/tasks/006-z4-annotation-mode.md`.
+Börja i `docs/FLOORPLAN_BREAKDOWN.md`, `docs/ZONE_BY_ZONE_REVIEW.md` och `codex/tasks/008-z4-threejs-prototype.md`.
