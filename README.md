@@ -28,6 +28,25 @@ Skriptet gör detta automatiskt:
 5. kör `npm install`
 6. startar spelet med `npm run play`
 
+## Superenkelt på Windows
+
+Öppna **PowerShell-terminalen** i Visual Studio Code och klistra in detta:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; iwr -UseB https://raw.githubusercontent.com/capstere/holiday/main/bootstrap-windows.ps1 | iex
+```
+
+Skriptet gör detta automatiskt:
+
+1. kontrollerar Git
+2. kontrollerar Node/npm
+3. försöker installera Git och Node.js LTS via `winget` om de saknas
+4. laddar ner/uppdaterar projektet till `%USERPROFILE%\Plan5F\holiday`
+5. kör `npm install`
+6. startar spelet med `npm run play`
+
+Om `winget` saknas behöver Windows installera **App Installer** från Microsoft Store, eller så installerar du Git och Node.js LTS manuellt och kör kommandot igen.
+
 Om webbläsaren inte öppnas automatiskt, öppna:
 
 ```text
@@ -133,6 +152,7 @@ git commit -m "Apply Z4 annotation patch and export geometry"
 
 ```text
 bootstrap-mac.sh                          # One-paste Mac-start
+bootstrap-windows.ps1                     # One-paste Windows-start
 index.html                                # Review/annotation UI
 z4.html                                   # Z4 first-person prototype
 public/data/plan5f.manual-v0.json         # Mellanmodell
