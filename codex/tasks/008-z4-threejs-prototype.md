@@ -18,6 +18,10 @@ Load the Z4 geometry bridge export and render a first-person prototype using Thr
 - Basic WASD + mouse pointer-lock movement.
 - Basic collision against walkable polygons, wall segments and prop bboxes.
 - Door portals can suppress nearby wall collision.
+- Runtime room-name HUD.
+- Position readout in meters.
+- Reset-to-spawn button and `R` shortcut.
+- Toggleable top-down minimap with room polygons, door portals, props and player heading.
 
 ## How to run
 
@@ -39,6 +43,8 @@ http://localhost:5173/z4.html
 - `WASD` move.
 - Mouse look.
 - `Shift` faster movement.
+- `R` reset to spawn.
+- `M` toggle minimap.
 - `Esc` releases pointer lock.
 
 ## Current limitations
@@ -53,8 +59,8 @@ http://localhost:5173/z4.html
 ## Next acceptance criteria
 
 - Generate and commit a small demo geometry fixture for CI/dev convenience, or auto-generate before dev preview.
-- Add minimap/debug top-down overlay to the 3D prototype.
 - Split wall segments at door portals instead of relying only on collision suppression.
-- Add room-name HUD based on current polygon containment.
-- Add reset-to-spawn button.
 - Add separate first-person and top-down debug cameras.
+- Add collision debug visualization.
+- Add simple door-frame meshes at portal locations.
+- Add material categories for labs, corridors and props.
