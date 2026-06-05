@@ -75,6 +75,38 @@ body {
   color: #ffffff;
 }
 
+.material-legend {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  padding-top: 2px;
+  color: #d6ddeb;
+  font-size: 0.82rem;
+}
+
+.material-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.material-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.mat-floor-lab { background: #2c465f; }
+.mat-floor-support { background: #37402f; }
+.mat-wall { background: #d6dde8; }
+.mat-door { background: #fff69a; }
+.mat-opening { background: #ff4fd8; }
+.mat-prop { background: #b88452; }
+
 .controls {
   display: flex;
   gap: 10px;
