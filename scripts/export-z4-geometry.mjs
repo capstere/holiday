@@ -15,6 +15,7 @@ const DEFAULT_WORLD = {
   player_eye_height_m: 1.65,
   player_radius_m: 0.28,
   door_default_width_m: 0.9,
+  door_opening_clearance_m: 0.22,
 };
 
 function readJson(filePath) {
@@ -42,6 +43,27 @@ function midpoint(a, b) {
   return [round((a[0] + b[0]) / 2), round((a[1] + b[1]) / 2)];
 }
 
+function lerpPoint(a, b, t) {
+  return [round(a[0] + (b[0] - a[0]) * t), round(a[1] + (b[1] - a[1]) * t)];
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function segmentProjectionT(point, start, end) {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq === 0) return 0;
+  return ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / lengthSq;
+}
+
+function distancePointToSegment(point, start, end) {
+  const t = clamp(segmentProjectionT(point, start, end), 0, 1);
+  return distance(point, lerpPoint(start, end, t));
+}
+
 function polygonArea(points) {
   let area = 0;
   for (let i = 0; i < points.length; i += 1) {
@@ -64,34 +86,133 @@ function polygonCentroid(points) {
   return [round(sum[0] / points.length), round(sum[1] / points.length)];
 }
 
+function doorGapForEdge(door, start, end, edgeLength) {
+  if (edgeLength < 0.01) return null;
+  const centerT = segmentProjectionT(door.center_m, start, end);
+  const perpendicularDistance = distancePointToSegment(door.center_m, start, end);
+  const width = Math.max(door.width_m ?? DEFAULT_WORLD.door_default_width_m, DEFAULT_WORLD.door_default_width_m);
+  const maxDistance = Math.max(width * 1.15, 1.1);
+
+  if (centerT < -0.05 || centerT > 1.05) return null;
+  if (perpendicularDistance > maxDistance) return null;
+
+  const halfGapT = (width / 2 + DEFAULT_WORLD.door_opening_clearance_m) / edgeLength;
+  return {
+    door_portal_id: door.id,
+    start_t: clamp(centerT - halfGapT, 0, 1),
+    end_t: clamp(centerT + halfGapT, 0, 1),
+    center_t: clamp(centerT, 0, 1),
+    perpendicular_distance_m: round(perpendicularDistance),
+    opening_width_m: round(width + DEFAULT_WORLD.door_opening_clearance_m * 2),
+  };
+}
+
+function mergeGaps(gaps) {
+  const sorted = gaps
+    .filter((gap) => gap.end_t > gap.start_t)
+    .sort((a, b) => a.start_t - b.start_t);
+
+  const merged = [];
+  for (const gap of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last || gap.start_t > last.end_t) {
+      merged.push({ ...gap, door_portal_ids: [gap.door_portal_id] });
+      continue;
+    }
+
+    last.end_t = Math.max(last.end_t, gap.end_t);
+    last.opening_width_m = round(last.opening_width_m + gap.opening_width_m);
+    last.door_portal_ids.push(gap.door_portal_id);
+  }
+  return merged;
+}
+
+function createWallSegment({ id, room, sourceEdgeIndex, start, end, cutByDoorPortalIds = [] }) {
+  const length = distance(start, end);
+  if (length < 0.12) return null;
+
+  return {
+    id,
+    room_candidate_id: room.id,
+    source_room_id: room.source_room_id,
+    source_edge_index: sourceEdgeIndex,
+    start_m: start,
+    end_m: end,
+    length_m: round(length),
+    height_m: DEFAULT_WORLD.wall_height_m,
+    thickness_m: DEFAULT_WORLD.wall_thickness_m,
+    cut_by_door_portal_ids: cutByDoorPortalIds,
+    door_portal_ids_near_edge: cutByDoorPortalIds,
+    confidence: room.confidence,
+  };
+}
+
 function wallSegmentsForPolygon(room, points, doorPortals) {
   const segments = [];
+  const openings = [];
+
   for (let i = 0; i < points.length; i += 1) {
     const start = points[i];
     const end = points[(i + 1) % points.length];
-    const edgeMid = midpoint(start, end);
     const edgeLength = distance(start, end);
-    const matchingDoors = doorPortals.filter((door) => {
-      if (!(door.between_room_ids ?? []).includes(room.source_room_id)) return false;
-      const d = distance(edgeMid, door.center_m);
-      return d < Math.max(1.5, edgeLength * 0.35);
-    });
+    const edgeId = `WALL-${room.id}-${String(i + 1).padStart(2, '0')}`;
+    const matchingDoors = doorPortals.filter((door) => (door.between_room_ids ?? []).includes(room.source_room_id));
+    const gaps = mergeGaps(matchingDoors.map((door) => doorGapForEdge(door, start, end, edgeLength)).filter(Boolean));
 
-    segments.push({
-      id: `WALL-${room.id}-${String(i + 1).padStart(2, '0')}`,
-      room_candidate_id: room.id,
-      source_room_id: room.source_room_id,
-      start_m: start,
-      end_m: end,
-      length_m: round(edgeLength),
-      height_m: DEFAULT_WORLD.wall_height_m,
-      thickness_m: DEFAULT_WORLD.wall_thickness_m,
-      door_portal_ids_near_edge: matchingDoors.map((door) => door.id),
-      confidence: room.confidence,
-      note: matchingDoors.length ? 'Door candidate is near this edge; downstream generator should cut an opening here.' : undefined,
+    if (!gaps.length) {
+      const wholeSegment = createWallSegment({ id: edgeId, room, sourceEdgeIndex: i, start, end });
+      if (wholeSegment) segments.push(wholeSegment);
+      continue;
+    }
+
+    let cursor = 0;
+    let partIndex = 0;
+    for (const gap of gaps) {
+      const beforeStart = lerpPoint(start, end, cursor);
+      const beforeEnd = lerpPoint(start, end, gap.start_t);
+      const beforeSegment = createWallSegment({
+        id: `${edgeId}-P${String(partIndex + 1).padStart(2, '0')}`,
+        room,
+        sourceEdgeIndex: i,
+        start: beforeStart,
+        end: beforeEnd,
+        cutByDoorPortalIds: gap.door_portal_ids,
+      });
+      if (beforeSegment) {
+        segments.push(beforeSegment);
+        partIndex += 1;
+      }
+
+      openings.push({
+        id: `OPENING-${edgeId}-${String(openings.length + 1).padStart(2, '0')}`,
+        room_candidate_id: room.id,
+        source_room_id: room.source_room_id,
+        source_edge_index: i,
+        start_m: lerpPoint(start, end, gap.start_t),
+        end_m: lerpPoint(start, end, gap.end_t),
+        center_m: lerpPoint(start, end, gap.center_t),
+        width_m: round(distance(lerpPoint(start, end, gap.start_t), lerpPoint(start, end, gap.end_t))),
+        door_portal_ids: gap.door_portal_ids,
+        confidence: room.confidence,
+      });
+
+      cursor = gap.end_t;
+    }
+
+    const afterStart = lerpPoint(start, end, cursor);
+    const afterEnd = end;
+    const afterSegment = createWallSegment({
+      id: `${edgeId}-P${String(partIndex + 1).padStart(2, '0')}`,
+      room,
+      sourceEdgeIndex: i,
+      start: afterStart,
+      end: afterEnd,
+      cutByDoorPortalIds: gaps.flatMap((gap) => gap.door_portal_ids),
     });
+    if (afterSegment) segments.push(afterSegment);
   }
-  return segments;
+
+  return { segments, openings };
 }
 
 function validatePlan(plan) {
@@ -144,12 +265,13 @@ function exportZ4(plan) {
     };
   });
 
-  const roomById = new Map(roomCandidates.map((room) => [room.source_room_id, room]));
-  const wallSegments = walkableAreas.flatMap((walkable) => {
+  const splitResults = walkableAreas.flatMap((walkable) => {
     const room = roomCandidates.find((candidate) => candidate.id === walkable.room_candidate_id);
     if (!room) return [];
-    return wallSegmentsForPolygon(room, walkable.polygon_m, doorPortals);
+    return [wallSegmentsForPolygon(room, walkable.polygon_m, doorPortals)];
   });
+  const wallSegments = splitResults.flatMap((result) => result.segments);
+  const wallOpenings = splitResults.flatMap((result) => result.openings);
 
   const props = equipmentCandidates.map((equipment) => {
     const [x1, y1, x2, y2] = equipment.normalized_bbox;
@@ -185,7 +307,7 @@ function exportZ4(plan) {
     : null;
 
   return {
-    schema_version: 'plan5f.z4_geometry_export.v0',
+    schema_version: 'plan5f.z4_geometry_export.v1',
     generated_at: new Date().toISOString(),
     source_plan: path.relative(process.cwd(), planPath),
     source_schema_version: plan.schema_version,
@@ -211,15 +333,19 @@ function exportZ4(plan) {
     },
     walkable_areas: walkableAreas,
     wall_segments: wallSegments,
+    wall_openings: wallOpenings,
     door_portals: doorPortals,
     props,
     navigation_graph: navGraph,
     build_notes: [
       'This export is a bridge format for the first Three.js prototype.',
-      'wall_segments are polygon edges; door_portals identify where openings should be cut or ignored by collision.',
+      'wall_segments are split at nearby door_portals to create approximate openings before 3D generation.',
+      'wall_openings documents the removed wall spans and which door_portals created them.',
       'Do not treat this as final CAD geometry. It is only as accurate as the current Z4 candidates.',
       `Room candidates exported: ${walkableAreas.length}`,
       `Door portals exported: ${doorPortals.length}`,
+      `Wall segments exported after door splitting: ${wallSegments.length}`,
+      `Wall openings created: ${wallOpenings.length}`,
       `Props exported: ${props.length}`,
     ],
   };
@@ -231,7 +357,7 @@ try {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, `${JSON.stringify(geometry, null, 2)}\n`, 'utf8');
   console.log(`Z4 geometry export written to ${path.relative(process.cwd(), outPath)}`);
-  console.log(`walkable_areas=${geometry.walkable_areas.length} wall_segments=${geometry.wall_segments.length} door_portals=${geometry.door_portals.length} props=${geometry.props.length}`);
+  console.log(`walkable_areas=${geometry.walkable_areas.length} wall_segments=${geometry.wall_segments.length} wall_openings=${geometry.wall_openings.length} door_portals=${geometry.door_portals.length} props=${geometry.props.length}`);
 } catch (error) {
   console.error(`Z4 geometry export failed: ${error.message}`);
   process.exit(1);
