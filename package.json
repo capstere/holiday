@@ -7,7 +7,7 @@
     "play": "node scripts/play.mjs",
     "dev": "vite --host 0.0.0.0",
     "build": "npm run export:z4-geometry && vite build",
-    "build:pages": "npm run export:z4-geometry && GITHUB_PAGES=true vite build",
+    "build:pages": "npm run export:z4-geometry && GITHUB_PAGES=true vite build && node scripts/fix-pages-build.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "validate:plan": "node scripts/validate-plan.mjs public/data/plan5f.manual-v0.json",
     "apply:annotation-patch": "node scripts/apply-annotation-patch.mjs public/data/plan5f.manual-v0.json",
