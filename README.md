@@ -11,6 +11,43 @@ Kärnidén:
 
 > Viktigt: PDF/ritningsbild ska inte commitas om repot är publikt. Lägg den lokalt i `public/source/` vid behov.
 
+## Utan Node på Windows
+
+Om du inte kan installera Node.js på Windows finns två bra alternativ:
+
+### Alternativ A — GitHub Pages
+
+Projektet har nu en GitHub Actions-workflow som kan bygga prototypen i GitHub, alltså utan Node på din Windows-dator.
+
+Gör detta en gång i GitHub:
+
+1. Gå till repot `capstere/holiday`.
+2. Gå till **Settings → Pages**.
+3. Under **Build and deployment**, välj **GitHub Actions**.
+4. Gå till **Actions**.
+5. Kör workflowen **Deploy static prototype to GitHub Pages** manuellt, eller pusha en ändring till `main`.
+
+När workflowen är klar bör sidan finnas här:
+
+```text
+https://capstere.github.io/holiday/z4.html
+```
+
+Då behöver Windows-datorn bara en vanlig webbläsare.
+
+### Alternativ B — GitHub Codespaces
+
+Öppna repot i GitHub och välj **Code → Codespaces → Create codespace on main**. Då får du en VS Code-liknande miljö i webbläsaren där Node redan finns eller kan användas utan lokal installation.
+
+Kör sedan:
+
+```bash
+npm install
+npm run play
+```
+
+Öppna den vidarebefordrade porten som Codespaces visar.
+
 ## Superenkelt på Mac
 
 Öppna Terminal i Visual Studio Code och klistra in detta:
@@ -28,7 +65,7 @@ Skriptet gör detta automatiskt:
 5. kör `npm install`
 6. startar spelet med `npm run play`
 
-## Superenkelt på Windows
+## Superenkelt på Windows med Node-installation
 
 Öppna **PowerShell-terminalen** i Visual Studio Code och klistra in detta:
 
@@ -153,6 +190,8 @@ git commit -m "Apply Z4 annotation patch and export geometry"
 ```text
 bootstrap-mac.sh                          # One-paste Mac-start
 bootstrap-windows.ps1                     # One-paste Windows-start
+.github/workflows/pages.yml               # GitHub Pages-build utan lokal Node
+vite.config.ts                            # Vite-konfig för local + Pages
 index.html                                # Review/annotation UI
 z4.html                                   # Z4 first-person prototype
 public/data/plan5f.manual-v0.json         # Mellanmodell
