@@ -18,15 +18,23 @@ function walk(dir) {
   });
 }
 
+const replacements = new Map([
+  ['/generated/z4.geometry-v0.json', `${pagesBase}generated/z4.geometry-v0.json`],
+  ['/data/plan5f.manual-v0.json', `${pagesBase}data/plan5f.manual-v0.json`],
+  ['/source/plan5f.png', `${pagesBase}source/plan5f.png`],
+  ['href="/"', `href="${pagesBase}"`],
+  ["href='/'", `href='${pagesBase}'`],
+]);
+
 let changed = 0;
 for (const filePath of walk(distDir)) {
   if (!/\.(js|html|css)$/.test(filePath)) continue;
   const before = fs.readFileSync(filePath, 'utf8');
   let after = before;
 
-  after = after.replaceAll('/generated/z4.geometry-v0.json', `${pagesBase}generated/z4.geometry-v0.json`);
-  after = after.replaceAll('href="/"', `href="${pagesBase}"`);
-  after = after.replaceAll("href='/'", `href='${pagesBase}'`);
+  for (const [from, to] of replacements) {
+    after = after.replaceAll(from, to);
+  }
 
   if (after !== before) {
     fs.writeFileSync(filePath, after, 'utf8');
